@@ -1,0 +1,15 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+
+namespace ActorPipeline.Images
+{
+    public enum ImageFormat
+    {
+        Grayscale8,
+        Grayscale16,
+        Color24
+    }
+}
