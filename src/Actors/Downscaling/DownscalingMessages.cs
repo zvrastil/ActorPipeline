@@ -8,22 +8,22 @@ namespace ActorPipeline.Actors.Downscaling
         {
             public int InputWidth { get; }
             public int InputHeight { get; }
-            public int OutputWidth { get; }
-            public int OutputHeight { get; }
+            public int DisplayWidth { get; }
+            public int DisplayHeight { get; }
             public ImageFormat Format { get; }
             public FractionalImageRegion ZoomedArea { get; }
 
-            public SetDownscalingSettingsMessage(int inputWidth, int inputHeight, int outputWidth, int outputHeight,
+            public SetDownscalingSettingsMessage(int inputWidth, int inputHeight, int displayWidth, int displayHeight,
                 ImageFormat format, FractionalImageRegion zoomedArea)
             {
                 InputWidth = inputWidth;
                 InputHeight = inputHeight;
-                OutputWidth = outputWidth;
-                OutputHeight = outputHeight;
+                DisplayWidth = displayWidth;
+                DisplayHeight = displayHeight;
                 Format = format;
                 ZoomedArea = zoomedArea;
             }
-        }
+        }        
 
     }
 }

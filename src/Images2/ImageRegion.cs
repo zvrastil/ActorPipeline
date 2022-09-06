@@ -43,6 +43,8 @@ namespace ActorPipeline.Images2
 
         public ImageSize Size => new ImageSize(Width, Height);
 
+        public ImagePosition Center => new ImagePosition(Left + Width / 2, Top + Height / 2);
+
         public override string ToString() => $"[{Left}, {Top}, {Right}, {Bottom}] {Width}x{Height}";
 
         public bool Equals(ImageRegion other)
@@ -75,6 +77,15 @@ namespace ActorPipeline.Images2
         public static bool operator !=(ImageRegion left, ImageRegion right)
         {
             return !left.Equals(right);
+        }
+
+        public ImageRegion ExpandSafelyTo(ImageSize idealSize, ImageSize fullImageSize)
+        {
+            int newWidth = Math.Min(idealSize.Width, fullImageSize.Width);
+            int newHeight = Math.Min(idealSize.Height, fullImageSize.Height);
+            int newLeft = Math.Max(0, Center.X - newWidth/2);
+            int newTop = Math.Max(0, Center.Y - newHeight/2);
+            return new ImageRegion(newLeft, newTop, newWidth, newHeight);
         }
     }
 }
