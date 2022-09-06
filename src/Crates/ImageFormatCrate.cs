@@ -1,8 +1,8 @@
-﻿using ActorPipeline.Images;
+﻿using ActorPipeline.Images2;
 
 namespace ActorPipeline.Crates
 {
-    internal struct ImageFormatCrate
+    internal readonly struct ImageFormatCrate
     {
         public ImageFormatCrate(ImageFormat format, string description)
         {

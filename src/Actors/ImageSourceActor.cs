@@ -1,21 +1,24 @@
 ﻿using ActorPipeline.Actors.ImageGenerators;
-using ActorPipeline.Images;
+using ActorPipeline.Images2;
 using ActorPipeline.Messages;
 using Akka.Actor;
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using ActorPipeline.Images2.Factories;
 
 namespace ActorPipeline.Actors
 {
     public class ImageSourceActor : FilterActorBase
     {
+
         private static readonly TimeSpan updateInterval = TimeSpan.FromMilliseconds(100);
 
         private IImage sourceImage;
         private IImageGenerator imageGenerator;
-        private int dwellTimeNanoseconds = 50;
+        private long dwellTimeNanoseconds = 50;
         private DateTime lastTick;
-        private IntPosition lastPosition;
+        private ImagePosition lastPosition;
         private long lastFrame;
 
         #region Private Messages
@@ -78,8 +81,8 @@ namespace ActorPipeline.Actors
             TimeSpan delta = DateTime.Now - lastTick;
             lastTick = DateTime.Now;
 
-            //int pixelsToChange =  Math.Min(sourceImage.Width*sourceImage.Height, (int)(delta.TotalSeconds * 1e9 / dwellTimeNanoseconds));
-            int pixelsToChange = (int)(delta.TotalSeconds * 1e9 / dwellTimeNanoseconds);
+            int pixelsToChange =  Math.Min(sourceImage.Width*sourceImage.Height, (int)(delta.TotalSeconds * 1e9 / dwellTimeNanoseconds));
+            //int pixelsToChange = (int)(delta.TotalSeconds * 1e9 / dwellTimeNanoseconds);
             imageGenerator.GenerateNextPixels(pixelsToChange);
 
             if (lastPosition.Y != imageGenerator.Position.Y || lastFrame != imageGenerator.Frame)
@@ -120,23 +123,47 @@ namespace ActorPipeline.Actors
 
         private PipelineFilterMessages.PartialUpdateMessage CreatePartialUpdate(int fromY, int height)
         {
-            var rect = new IntRectangle(0, fromY, sourceImage.Width, height);
-            return new PipelineFilterMessages.PartialUpdateMessage(rect, sourceImage.ExtractData(rect));
+            var rect = new ImageRegion(0, fromY, sourceImage.Width, height);
+            return new PipelineFilterMessages.PartialUpdateMessage(rect, ExtractData(sourceImage, rect));
+        }
+
+        private static byte[] ExtractData(IImage image, ImageRegion rect)
+        {
+            byte[] result = new byte[rect.Width * rect.Height * image.BytesPerPixel];
+            for (int i = 0; i < rect.Height; i++)
+            {
+                using (var readAccess = image.LockLineForReading(rect.Top + i))
+                {
+                    Marshal.Copy(readAccess.Ptr+rect.Left*image.BytesPerPixel, result, i*rect.Width*image.BytesPerPixel, rect.Width*image.BytesPerPixel);
+                }
+            }
+
+            return result;
+        }
+
+        private static double GetNoiseLevel(long dwellTime)
+        {
+            double noiseCancellationFactor = Math.Log(dwellTime);
+            return 1.0/noiseCancellationFactor;
         }
 
         private void HandleFormatChange(PipelineControlMessages.SetImageFormatMessage message)
         {
-            sourceImage = ImageFactory.Create(message.Width, message.Height, message.Format);
-            imageGenerator = new GradualImageGenerator(sourceImage);
+            sourceImage?.Dispose();
+            sourceImage = InMemoryImageFactory.Instance.Create(message.Width, message.Height, message.Format);
+            imageGenerator?.Dispose();
+            imageGenerator = new MandelbrotImageGenerator(sourceImage, GetNoiseLevel(dwellTimeNanoseconds));
+            lastTick = DateTime.Now;
+            lastPosition = new ImagePosition(0, 0);
             TellToSubscribers(new PipelineFilterMessages.FormatChangedMessage(sourceImage));
         }
 
         private void HandleDwellTimeChange(PipelineControlMessages.SetDwellTimeMessage message)
         {
             dwellTimeNanoseconds = message.DwellTimeNanoseconds;
-            imageGenerator?.Reset();
+            imageGenerator?.Reset(GetNoiseLevel(dwellTimeNanoseconds));
             lastTick = DateTime.Now;    
-            lastPosition = new IntPosition(0, 0);
+            lastPosition = new ImagePosition(0, 0);
         }
 
         protected override void OnSubscribed(IActorRef actor)

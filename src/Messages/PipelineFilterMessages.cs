@@ -1,4 +1,4 @@
-﻿using ActorPipeline.Images;
+﻿using ActorPipeline.Images2;
 using Akka.Actor;
 using System;
 using System.Collections.Generic;
@@ -10,19 +10,29 @@ namespace ActorPipeline.Messages
     {
         public sealed class ConnectToMessage
         {
+
             public ConnectToMessage(IActorRef sourceFilter, params IActorRef[] otherSourceFilters)
             {
                 if (sourceFilter == null)
                 {
                     throw new ArgumentNullException(nameof(sourceFilter));
                 }
+
                 SourceFilters = new[] { sourceFilter }.Concat(otherSourceFilters).ToList();
             }
 
             public IReadOnlyList<IActorRef> SourceFilters { get; }
         }
 
-        public sealed class SubscribeMessage { }
+        public sealed class SubscribeMessage
+        {
+            public SubscribeMessage(IActorRef subscriber)
+            {
+                Subscriber = subscriber;
+            }
+
+            public IActorRef Subscriber { get; }
+        }
 
         public sealed class FormatChangedMessage
         {
@@ -47,13 +57,13 @@ namespace ActorPipeline.Messages
 
         public sealed class PartialUpdateMessage
         {
-            public PartialUpdateMessage(IntRectangle changed, byte[] data)
+            public PartialUpdateMessage(ImageRegion changed, byte[] data)
             {
                 Changed = changed;
                 Data = data;
             }
 
-            public IntRectangle Changed { get; }
+            public ImageRegion Changed { get; }
             public byte[] Data { get; }
         }
                    

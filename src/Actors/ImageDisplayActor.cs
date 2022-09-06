@@ -1,27 +1,42 @@
-﻿using ActorPipeline.Messages;
-using System;
+﻿using ActorPipeline.Images2;
+using ActorPipeline.Messages;
+using Akka.Actor;
 
 namespace ActorPipeline.Actors
 {
-    public class ImageDisplayActor : FilterActorBase
+    public sealed class ImageDisplayActor : ProcessingFilterActorBase
     {
-        public ImageDisplayActor() : base(FilterFlags.ProcessingFilter)
+        private readonly IActorRef imageDownscalerActor;
+        private DisplayMessages.SetDisplaySizeMessage displaySize;
+        private DisplayMessages.SetDigitalZoomMessage digitalZoom;
+
+        public ImageDisplayActor(IActorRef imageDownscalerActor) : base()
         {
+            this.imageDownscalerActor = imageDownscalerActor;
             BaseMessages();
-            Receive<PipelineFilterMessages.FormatChangedMessage>(HandleFormatChange);
-            Receive<PipelineFilterMessages.PartialUpdateMessage>(HandleImageUpdate);
+            Receive<DisplayMessages.SetDisplaySizeMessage>(HandleDisplaySize);
+            Receive<DisplayMessages.SetDigitalZoomMessage>(HandleDigitalZoom);
         }
 
-        private void HandleFormatChange(PipelineFilterMessages.FormatChangedMessage message)
+        private void HandleDigitalZoom(DisplayMessages.SetDigitalZoomMessage message)
         {
-            System.Diagnostics.Trace.WriteLine($"ImageDisplayActor.FormatChanged to {message.Width}x{message.Height}x{message.Format}");
-            TellToSubscribers(message);
+            digitalZoom = message;
+            TellDownscalerIfReady();
         }
 
-        private void HandleImageUpdate(PipelineFilterMessages.PartialUpdateMessage message)
+        private void HandleDisplaySize(DisplayMessages.SetDisplaySizeMessage message)
         {
-            System.Diagnostics.Trace.WriteLine($"ImageDisplayActor.ImageUpdate  {message.Changed}");
-            TellToSubscribers(message);
+            displaySize = message;
+            TellDownscalerIfReady();
+        }
+
+        private void TellDownscalerIfReady()
+        {
+            if (digitalZoom != null && displaySize != null)
+            {
+                var region = FractionalImageRegion.WholeImage().ZoomIn(digitalZoom.ZoomFactor).PanSafe(digitalZoom.PanX, digitalZoom.PanY);
+                imageDownscalerActor.Tell(new DisplayMessages.SetDisplaySettingsMessage(region, displaySize.DisplaySize));
+            }
         }
     }
 }

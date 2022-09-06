@@ -1,12 +1,13 @@
-﻿using ActorPipeline.Images;
+﻿using System;
+using ActorPipeline.Images2;
 
 namespace ActorPipeline.Actors.ImageGenerators
 {
-    internal interface IImageGenerator
+    internal interface IImageGenerator : IDisposable
     {
-        IntPosition Position { get; }
+        ImagePosition Position { get; }
         int Frame { get; }
-        void Reset();
+        void Reset(double noiseLevel);
         void GenerateNextPixels(int numberOfPixels);
 
     }

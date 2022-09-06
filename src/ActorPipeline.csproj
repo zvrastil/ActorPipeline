@@ -42,6 +42,9 @@
     <Reference Include="Akka, Version=1.4.41.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\Akka.1.4.41\lib\netstandard2.0\Akka.dll</HintPath>
     </Reference>
+    <Reference Include="Cloo, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Cloo.clSharp.1.0.1\lib\netstandard2.0\Cloo.dll</HintPath>
+    </Reference>
     <Reference Include="Microsoft.Extensions.ObjectPool, Version=5.0.5.0, Culture=neutral, PublicKeyToken=adb9793829ddae60, processorArchitecture=MSIL">
       <HintPath>packages\Microsoft.Extensions.ObjectPool.5.0.5\lib\net461\Microsoft.Extensions.ObjectPool.dll</HintPath>
     </Reference>
@@ -114,26 +117,44 @@
       <SubType>Designer</SubType>
     </Page>
     <Compile Include="ActorGlobals.cs" />
+    <Compile Include="Actors\Downscaling\DownscalerCoordinatorActor.cs" />
+    <Compile Include="Actors\Downscaling\DownscalingMessages.cs" />
+    <Compile Include="Actors\Downscaling\OpenClDownscalerActor.cs" />
     <Compile Include="Actors\ImageDisplayActor.cs" />
+    <Compile Include="Actors\ImageDownscalerActor.cs" />
+    <Compile Include="Actors\ImageGenerators\BaseImageGenerator.cs" />
     <Compile Include="Actors\ImageGenerators\FakeImageGenerator.cs" />
     <Compile Include="Actors\ImageGenerators\GradualImageGenerator.cs" />
     <Compile Include="Actors\ImageGenerators\IImageGenerator.cs" />
+    <Compile Include="Actors\ImageGenerators\MandelbrotImageGenerator.cs" />
     <Compile Include="Actors\ImageSourceActor.cs" />
+    <Compile Include="Actors\ProcessingFilterActorBase.cs" />
     <Compile Include="Actors\PipelineCoordinatorActor.cs" />
     <Compile Include="Actors\FilterActorBase.cs" />
-    <Compile Include="Actors\WriteableBitmapUpdaterActor.cs" />
+    <Compile Include="Actors\WpfImageControlUpdaterActor.cs" />
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Crates\DwellTimeCrate.cs" />
     <Compile Include="Crates\ImageFormatCrate.cs" />
-    <Compile Include="Images\IImage.cs" />
-    <Compile Include="Images\Image.cs" />
-    <Compile Include="Images\ImageFactory.cs" />
-    <Compile Include="Images\ImageFormat.cs" />
-    <Compile Include="Images\IntPosition.cs" />
-    <Compile Include="Images\IntRectangle.cs" />
-    <Compile Include="Images\RgbType.cs" />
+    <Compile Include="Crates\ImageResolutionCrate.cs" />
+    <Compile Include="Images2\Factories\InMemoryImageFactory.cs" />
+    <Compile Include="Images2\Factories\TemporaryRawFileImageFactory.cs" />
+    <Compile Include="Images2\FractionalImageRegion.cs" />
+    <Compile Include="Images2\IContinuousImage.cs" />
+    <Compile Include="Images2\IImage.cs" />
+    <Compile Include="Images2\IImageFactory.cs" />
+    <Compile Include="Images2\IImageLineReadAccess.cs" />
+    <Compile Include="Images2\IImageLineWriteAccess.cs" />
+    <Compile Include="Images2\ImageFormat.cs" />
+    <Compile Include="Images2\ImagePosition.cs" />
+    <Compile Include="Images2\ImageRegion.cs" />
+    <Compile Include="Images2\ImageSize.cs" />
+    <Compile Include="Images2\Images\ImageBase.cs" />
+    <Compile Include="Images2\Images\InMemoryImage.cs" />
+    <Compile Include="Images2\Images\RawFileImage.cs" />
+    <Compile Include="Images2\RgbType.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
@@ -142,6 +163,7 @@
   <ItemGroup>
     <Compile Include="Messages\Data\FilterProperties.cs" />
     <Compile Include="Messages\Data\FilterPropertiesBuilder.cs" />
+    <Compile Include="Messages\DisplayMessages.cs" />
     <Compile Include="Messages\PipelineControlMessages.cs" />
     <Compile Include="Messages\PipelineFilterMessages.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
@@ -170,5 +192,6 @@
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

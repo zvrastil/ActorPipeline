@@ -1,23 +1,15 @@
-﻿using ActorPipeline.Images;
+﻿using ActorPipeline.Images2;
 using System;
 
 namespace ActorPipeline.Actors.ImageGenerators
 {
-    internal class GradualImageGenerator : IImageGenerator
+    internal class GradualImageGenerator : BaseImageGenerator
     {
-        private readonly IImage targetImage;
-        private long currentPosition;
-        private readonly long dataSize;
-        private IWriter writer;
-
-        public GradualImageGenerator(IImage targetImage)
+        public GradualImageGenerator(IImage targetImage) : base(targetImage)
         {
-            this.targetImage = targetImage;
-            dataSize = targetImage.Width * targetImage.Height;
-            Reset();           
         }
 
-        private IWriter CreateWriter()
+        protected override IWriter CreateWriter()
         {
             switch (targetImage.Format)
             {
@@ -28,42 +20,12 @@ namespace ActorPipeline.Actors.ImageGenerators
             }
         }
 
-        public IntPosition Position { get; private set; }
-
-        public int Frame { get; private set; }
-
-        public void GenerateNextPixels(int numberOfPixels)
-        {
-            for (int i = 0; i < numberOfPixels; i++)
-            {
-                writer.WriteNext();
-                currentPosition++;
-                if (currentPosition >= dataSize)
-                {
-                    currentPosition = 0;
-                    Frame++;
-                }
-            }
-            Position = new IntPosition((int)(currentPosition % targetImage.Width), (int)(currentPosition / targetImage.Width));
-        }
-
-        public void Reset()
-        {
-            currentPosition = 0;
-            Frame = 0;
-            writer = CreateWriter();            
-        }
-
-        private interface IWriter
-        {
-            void WriteNext();
-        }
-
         private unsafe class Writer8Bit : IWriter
         {
             private readonly IImage image;
             private int x;
             private int y;
+            private IImageLineWriteAccess lineAccess;
             private byte* current;
             private byte nextValue;
             private int frame;
@@ -71,11 +33,12 @@ namespace ActorPipeline.Actors.ImageGenerators
             public Writer8Bit(IImage image)
             {                
                 this.image = image;
-                current = (byte*)image.Data;
                 x = 0;
                 y = 0;
                 frame = 0;
                 nextValue = 0;
+                lineAccess = image.LockLineForWriting(y);
+                current = (byte*) lineAccess.Ptr;
             }
 
             public void WriteNext()
@@ -90,9 +53,12 @@ namespace ActorPipeline.Actors.ImageGenerators
                     if (y == image.Height)
                     {
                         y = 0;
-                        current = (byte*)image.Data;
                         frame++;
                     }
+                    lineAccess.Commit();
+                    lineAccess.Dispose();
+                    lineAccess = image.LockLineForWriting(y);
+                    current = (byte*)lineAccess.Ptr;
                     nextValue = (byte)((y+frame) % 256);
                 }
                 else
@@ -107,6 +73,7 @@ namespace ActorPipeline.Actors.ImageGenerators
             private readonly IImage image;
             private int x;
             private int y;
+            private IImageLineWriteAccess lineAccess;
             private ushort* current;
             private ushort nextValue;
             private int frame;
@@ -114,11 +81,12 @@ namespace ActorPipeline.Actors.ImageGenerators
             public Writer16Bit(IImage image)
             {
                 this.image = image;
-                current = (ushort*)image.Data;
                 x = 0;
                 y = 0;
                 frame = 0;
                 nextValue = 0;
+                lineAccess = image.LockLineForWriting(y);
+                current = (ushort*)lineAccess.Ptr;
             }
 
             public void WriteNext()
@@ -133,10 +101,13 @@ namespace ActorPipeline.Actors.ImageGenerators
                     if (y == image.Height)
                     {
                         y = 0;
-                        current = (ushort*)image.Data;
                         frame++;
                     }
-                    nextValue = (ushort)(((y+frame) % 256) << 8);
+                    lineAccess.Commit();
+                    lineAccess.Dispose();
+                    lineAccess = image.LockLineForWriting(y);
+                    current = (ushort*)lineAccess.Ptr;
+                    nextValue = (ushort)(((y + frame) % 256) << 8);
                 }
                 else
                 {
@@ -150,20 +121,22 @@ namespace ActorPipeline.Actors.ImageGenerators
             private readonly IImage image;
             private int x;
             private int y;
+            private IImageLineWriteAccess lineAccess;
             private byte* current;
             private byte nextValue;
             private int nextChannel;
-            private int frame = -1;
+            private int frame;
 
             public WriterRgb(IImage image)
             {
                 this.image = image;
-                current = (byte*)image.Data;
                 x = 0;
                 y = 0;
                 frame = 0;
                 nextValue = 0;
                 nextChannel = 0;
+                lineAccess = image.LockLineForWriting(y);
+                current = (byte*)lineAccess.Ptr;
             }
 
             public void WriteNext()
@@ -180,9 +153,12 @@ namespace ActorPipeline.Actors.ImageGenerators
                     if (y == image.Height)
                     {
                         y = 0;
-                        current = (byte*)image.Data;
                         frame++;
                     }
+                    lineAccess.Commit();
+                    lineAccess.Dispose();
+                    lineAccess = image.LockLineForWriting(y);
+                    current = (byte*)lineAccess.Ptr;
                     nextValue = (byte)((y+frame) % 256);
                     nextChannel = ((y+frame) / 768) % 3;
                 }

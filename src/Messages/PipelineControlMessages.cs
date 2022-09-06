@@ -1,4 +1,4 @@
-﻿using ActorPipeline.Images;
+﻿using ActorPipeline.Images2;
 using ActorPipeline.Messages.Data;
 using Akka.Actor;
 using System;
@@ -38,12 +38,12 @@ namespace ActorPipeline.Messages
 
         public sealed class SetDwellTimeMessage
         {
-            public SetDwellTimeMessage(int dwellTimeNanoseconds)
+            public SetDwellTimeMessage(long dwellTimeNanoseconds)
             {
                 DwellTimeNanoseconds = dwellTimeNanoseconds;
             }
 
-            public int DwellTimeNanoseconds { get; }
+            public long DwellTimeNanoseconds { get; }
         }
     }
 }

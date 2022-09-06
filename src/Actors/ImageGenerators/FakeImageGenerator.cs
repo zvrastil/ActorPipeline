@@ -1,4 +1,4 @@
-﻿using ActorPipeline.Images;
+﻿using ActorPipeline.Images2;
 
 namespace ActorPipeline.Actors.ImageGenerators
 {
@@ -9,10 +9,10 @@ namespace ActorPipeline.Actors.ImageGenerators
         public FakeImageGenerator(IImage targetImage)
         {
             this.targetImage = targetImage;
-            Reset();
+            Reset(0);
         }
 
-        public IntPosition Position { get; private set; }
+        public ImagePosition Position { get; private set; }
 
         public int Frame { get; private set; }
 
@@ -25,12 +25,16 @@ namespace ActorPipeline.Actors.ImageGenerators
                 Frame++;
                 newIndex %= (targetImage.Width * targetImage.Height);
             }
-            Position = new IntPosition(newIndex % targetImage.Width, newIndex / targetImage.Height);
+            Position = new ImagePosition(newIndex % targetImage.Width, newIndex / targetImage.Height);
         }
 
-        public void Reset()
+        public void Reset(double _)
         {
-            Position = new IntPosition(0, 0);
+            Position = new ImagePosition(0, 0);
+        }
+
+        public void Dispose()
+        {
         }
     }
 }

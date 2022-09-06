@@ -23,7 +23,7 @@ namespace ActorPipeline.Actors
             this.filterFlags = filterFlags;
         }
 
-        protected void BaseMessages()
+        protected virtual void BaseMessages()
         {
             if (filterFlags.HasFlag(FilterFlags.SourceFilter))
             {
@@ -53,19 +53,15 @@ namespace ActorPipeline.Actors
 
         private void HandleSubscribe(PipelineFilterMessages.SubscribeMessage message)
         {
-            if (subscribers.Contains(Sender))
-            {
-                return;
-            }
-            subscribers.Add(Sender);
-            OnSubscribed(Sender);
+            subscribers.Add(message.Subscriber);
+            OnSubscribed(message.Subscriber);   
         }
 
         private void HandleConnectTo(PipelineFilterMessages.ConnectToMessage message)
-        { 
+        {
             foreach (var sourceFilter in message.SourceFilters)
             {
-                sourceFilter.Tell(new PipelineFilterMessages.SubscribeMessage());
+                sourceFilter.Tell(new PipelineFilterMessages.SubscribeMessage(Self));
             }
         }
 

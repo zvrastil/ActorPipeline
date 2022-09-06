@@ -4,14 +4,18 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="MainWindow" SizeToContent="WidthAndHeight">
-    <DockPanel>
+        Title="MainWindow" Width="1054" Height="551">
+    <DockPanel LastChildFill="True">
         <Grid DockPanel.Dock="Right" Width="250" Margin="10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="2*"/>
             </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
                 <RowDefinition Height="Auto"/>
@@ -25,8 +29,16 @@
             <ComboBox Grid.Row="1" Grid.Column="1" x:Name="DwellTime"/>
             <Label Grid.Row="2" Content="Format"/>
             <ComboBox Grid.Row="2" Grid.Column="1" x:Name="Format"/>
-            <Button x:Name="StartStop" Margin="0,10" Grid.Row="4" Grid.ColumnSpan="2" Content="Start" Click="StartStop_Click"/>
+            <Label Grid.Row="3" Content="Zoom Factor"/>
+            <Slider Grid.Row="4" Grid.ColumnSpan="2" x:Name="ZoomFactor" Minimum="1" Maximum="64" TickFrequency="1" TickPlacement="BottomRight" ValueChanged="DigitalZoom_OnValueChanged"/>
+            <Label Grid.Row="5" Content="Pan X"/>
+            <Slider Grid.Row="6" Grid.ColumnSpan="2" x:Name="PanX" Minimum="0" Maximum="1" Value="0.5" TickFrequency="0.01" TickPlacement="BottomRight" ValueChanged="DigitalZoom_OnValueChanged"/>
+            <Label Grid.Row="7" Content="Pan Y"/>
+            <Slider Grid.Row="8" Grid.ColumnSpan="2" x:Name="PanY" Minimum="0" Maximum="1" Value="0.5" TickFrequency="0.01" TickPlacement="BottomRight" ValueChanged="DigitalZoom_OnValueChanged"/>
+            <Button x:Name="StartStop" Margin="0,10" Grid.Row="9" Grid.ColumnSpan="2" Content="Start" Click="StartStop_Click"/>
         </Grid>
-        <Image x:Name="Image" Stretch="Uniform" Width="768" Height="512"/>
+        <Border x:Name="ImageBorder" BorderThickness="0" Background="DimGray">
+            <Image x:Name="Image" Stretch="Uniform" RenderOptions.BitmapScalingMode="Linear"/>
+        </Border>
     </DockPanel>
 </Window>

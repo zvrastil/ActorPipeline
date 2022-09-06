@@ -1,4 +1,4 @@
-﻿using ActorPipeline.Images;
+﻿using ActorPipeline.Images2;
 using ActorPipeline.Messages;
 using System;
 using System.Runtime.InteropServices;
@@ -9,7 +9,7 @@ using System.Windows.Media.Imaging;
 
 namespace ActorPipeline.Actors
 {
-    public class WpfImageControlUpdaterActor : FilterActorBase
+    public sealed class WpfImageControlUpdaterActor : FilterActorBase
     {
         private readonly Image imageControl;
         private WriteableBitmap bitmap;
@@ -25,6 +25,7 @@ namespace ActorPipeline.Actors
 
         private void HandleFormatChange(PipelineFilterMessages.FormatChangedMessage message)
         {
+            System.Diagnostics.Trace.WriteLine($"WpfImageControlUpdaterActor.HandleFormatChange({message.Width}, {message.Height}, {message.Format})");
             var (format, bytesPerPixel) = GetPixelFormat(message.Format);
             bitmap = new WriteableBitmap(message.Width, message.Height, 96.0, 96.0, format, null);    
             this.bytesPerPixel = bytesPerPixel;
@@ -32,7 +33,7 @@ namespace ActorPipeline.Actors
             imageControl.Source = bitmap;
         }
 
-        private void ClearBitmap(WriteableBitmap bitmap)
+        private static void ClearBitmap(WriteableBitmap bitmap)
         {
             bitmap.Lock();
             try
@@ -80,7 +81,7 @@ namespace ActorPipeline.Actors
             }
         }
 
-        private static Int32Rect ToInt32Rect(IntRectangle changed) =>
+        private static Int32Rect ToInt32Rect(ImageRegion changed) =>
             new Int32Rect(changed.Left, changed.Top, changed.Width, changed.Height);
 
         [DllImport("kernel32.dll", EntryPoint = "RtlFillMemory", SetLastError = false)]
