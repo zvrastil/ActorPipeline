@@ -132,10 +132,10 @@ namespace ActorPipeline.Actors.Downscaling
         private ImageRegion CalculateOutputUpdatedRegion(ImageRegion inputUpdatedRegion)
         {
             double scale = (double) outputBuffer.Width / inputRegion.Width;
-            int left = Fit((int) Math.Floor(inputUpdatedRegion.Left * scale), 0, outputBuffer.Width);
-            int top = Fit((int) Math.Floor(inputUpdatedRegion.Top * scale), 0, outputBuffer.Height);
-            int right = Fit((int) Math.Ceiling(inputUpdatedRegion.Right * scale), 0, outputBuffer.Width);
-            int bottom = Fit((int) Math.Ceiling(inputUpdatedRegion.Bottom * scale), 0, outputBuffer.Height);
+            int left = Fit((int) Math.Floor((inputUpdatedRegion.Left-inputRegion.Left) * scale), 0, outputBuffer.Width);
+            int top = Fit((int) Math.Floor((inputUpdatedRegion.Top-inputRegion.Top) * scale), 0, outputBuffer.Height);
+            int right = Fit((int) Math.Ceiling((inputUpdatedRegion.Right-inputRegion.Left) * scale), 0, outputBuffer.Width);
+            int bottom = Fit((int) Math.Ceiling((inputUpdatedRegion.Bottom-inputRegion.Top) * scale), 0, outputBuffer.Height);
             return new ImageRegion(left, top, right - left, bottom - top);
         }
 
@@ -179,7 +179,6 @@ namespace ActorPipeline.Actors.Downscaling
                 int length = realUpdatedRegion.Width * bytesPerPixel;
                 Marshal.Copy(message.Data, startIndex, inputBufferPtr+i*realUpdatedRegion.Width*bytesPerPixel, length);
             }
-            Marshal.Copy(message.Data, 0, inputBufferPtr, message.Data.Length);
             clCommandQueue.Unmap(inputBuffer, ref inputBufferPtr, null);
         }
 
@@ -205,6 +204,7 @@ namespace ActorPipeline.Actors.Downscaling
 
         private void CreateNewInputBuffer(DownscalingMessages.SetDownscalingSizesMessage message)
         {
+            inputBuffer?.Dispose();
 #pragma warning disable CS0618
             inputBuffer = new ComputeImage2D(clContext, ComputeMemoryFlags.ReadOnly, GetBufferFormat(message.Format),
                 message.InputSize.Width, message.InputSize.Height, 0, IntPtr.Zero);
@@ -214,6 +214,7 @@ namespace ActorPipeline.Actors.Downscaling
 
         private void CreateNewOutputBuffer(DownscalingMessages.SetDownscalingSizesMessage message)
         {
+            outputBuffer?.Dispose();
 #pragma warning disable CS0618
             outputBuffer = new ComputeImage2D(clContext, ComputeMemoryFlags.WriteOnly, GetBufferFormat(message.Format),
                 message.FinalOutputSize.Width, message.FinalOutputSize.Height, 0, IntPtr.Zero);

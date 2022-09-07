@@ -30,7 +30,10 @@ namespace ActorPipeline.Actors
             bitmap = new WriteableBitmap(message.Size.Width, message.Size.Height, 96.0, 96.0, format, null);    
             this.bytesPerPixel = bytesPerPixel;
             ClearBitmap(bitmap);
+            imageControl.BeginInit();
             imageControl.Source = bitmap;
+            imageControl.EndInit();
+
         }
 
         private static void ClearBitmap(WriteableBitmap bitmap)
