@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace ActorPipeline.Actors
 {
-    public class PipelineCoordinatorActor : ReceiveActor
+    public class PipelineCoordinatorActor : ReceiveActor 
     {
         private readonly Dictionary<string, IActorRef> filters = new Dictionary<string, IActorRef>();
         private readonly List<IActorRef> sourceFilters = new List<IActorRef>();

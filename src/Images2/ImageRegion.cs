@@ -79,6 +79,22 @@ namespace ActorPipeline.Images2
             return !left.Equals(right);
         }
 
+        public ImageRegion IntersectWith(ImageRegion other)
+        {
+            int left = Math.Max(Left, other.Left);
+            int top = Math.Max(Top, other.Top);
+            int right = Math.Min(Right, other.Right);
+            int bottom = Math.Min(Bottom, other.Bottom);
+            int width = Math.Max(0, right - left);
+            int height = Math.Max(0, bottom - top);
+            if (width > 0 && height > 0)
+            {
+                return new ImageRegion(left, top, width, height);
+            }
+
+            return Invalid;
+        }
+
         public ImageRegion ExpandSafelyTo(ImageSize idealSize, ImageSize fullImageSize)
         {
             int newWidth = Math.Min(idealSize.Width, fullImageSize.Width);

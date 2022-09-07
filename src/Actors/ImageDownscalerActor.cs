@@ -9,6 +9,7 @@ namespace ActorPipeline.Actors
     {
         private PipelineFilterMessages.FormatChangedMessage inputFormat;
         private DisplayMessages.SetDisplaySettingsMessage outputSettings;
+        private DownscalingMessages.SetDownscalingSizesMessage outputFormat;
         private readonly IActorRef downscalerCoordinator;
 
         public ImageDownscalerActor() : base(FilterFlags.ProcessingFilter)
@@ -17,10 +18,23 @@ namespace ActorPipeline.Actors
             Receive<PipelineFilterMessages.FormatChangedMessage>(HandleFormatChange);
             Receive<DisplayMessages.SetDisplaySettingsMessage>(HandleDisplaySettings);
             Receive<PipelineFilterMessages.PartialUpdateMessage>(HandlePartialUpdate);
+            Receive<DownscalingMessages.SetDownscalingSizesMessage>(HandleFinalSizes);
+            Receive<DownscalingMessages.OutputUpdatedMessage>(HandleOutputUpdated);
             downscalerCoordinator = Context.ActorOf(Props.Create(() => new DownscalerCoordinatorActor(Self)));
         }
 
-        
+        private void HandleOutputUpdated(DownscalingMessages.OutputUpdatedMessage message)
+        {
+            TellToSubscribers(new PipelineFilterMessages.PartialUpdateMessage(message.Changed, message.Data));
+        }
+
+        private void HandleFinalSizes(DownscalingMessages.SetDownscalingSizesMessage message)
+        {
+            outputFormat = message;
+            TellToSubscribers(CreateOutputFormatMessage());
+        }
+
+
         private void HandlePartialUpdate(PipelineFilterMessages.PartialUpdateMessage message)
         {
             if (!IsReadyForWork())
@@ -33,25 +47,25 @@ namespace ActorPipeline.Actors
         private void HandleFormatChange(PipelineFilterMessages.FormatChangedMessage message)
         {
             inputFormat = message;
-            UpdateFormatIfReady();
+            UpdateDownscalerSettings();
         }
 
         private void HandleDisplaySettings(DisplayMessages.SetDisplaySettingsMessage message)
         {
             outputSettings = message;
-            UpdateFormatIfReady();
+            UpdateDownscalerSettings();
         }
 
         protected override void OnSubscribed(IActorRef actor)
         {
             base.OnSubscribed(actor);
-            if (inputFormat != null && outputSettings != null)
+            if (outputFormat != null)
             {
                 actor.Tell(CreateOutputFormatMessage());
             }
         }
 
-        private void UpdateFormatIfReady()
+        private void UpdateDownscalerSettings()
         {
             if (!IsReadyForWork())
             {
@@ -63,12 +77,11 @@ namespace ActorPipeline.Actors
                 outputSettings.DisplaySize.Width, outputSettings.DisplaySize.Height, 
                 inputFormat.Format,
                 outputSettings.RelativeRegion));
-            TellToSubscribers(CreateOutputFormatMessage());
         }
 
         private PipelineFilterMessages.FormatChangedMessage CreateOutputFormatMessage()
         {
-            return new PipelineFilterMessages.FormatChangedMessage(outputSettings.DisplaySize.Width, outputSettings.DisplaySize.Height, inputFormat.Format);
+            return new PipelineFilterMessages.FormatChangedMessage(outputFormat.FinalOutputSize.Width, outputFormat.FinalOutputSize.Height, outputFormat.Format);
         }
 
         private bool IsReadyForWork()

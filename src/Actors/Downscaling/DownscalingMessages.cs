@@ -23,7 +23,35 @@ namespace ActorPipeline.Actors.Downscaling
                 Format = format;
                 ZoomedArea = zoomedArea;
             }
-        }        
+        }
+
+        public sealed class SetDownscalingSizesMessage
+        {
+            public ImageSize InputSize { get; }
+            public ImageRegion FinalInputRegion { get; }
+            public ImageSize FinalOutputSize { get; }
+            public ImageFormat Format { get; }
+
+            public SetDownscalingSizesMessage(ImageSize inputSize, ImageRegion finalInputRegion, ImageSize finalOutputSize, ImageFormat format)
+            {
+                InputSize = inputSize;
+                FinalInputRegion = finalInputRegion;
+                FinalOutputSize = finalOutputSize;
+                Format = format;
+            }
+        }
+
+        public sealed class OutputUpdatedMessage
+        {
+            public ImageRegion Changed { get; }
+            public byte[] Data { get; }
+
+            public OutputUpdatedMessage(ImageRegion changed, byte[] data)
+            {
+                Changed = changed;
+                Data = data;
+            }
+        }
 
     }
 }
