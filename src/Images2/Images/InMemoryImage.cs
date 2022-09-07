@@ -5,7 +5,7 @@ namespace ActorPipeline.Images2.Images
 {
     public class InMemoryImage : ImageBase, IContinuousImage
     {
-        public InMemoryImage(int width, int height, ImageFormat format) : base(width, height, format)
+        public InMemoryImage(ImageSize size, ImageFormat format) : base(size, format)
         {
             this.ImageData = Marshal.AllocHGlobal(Width * Height * BytesPerPixel);
         }

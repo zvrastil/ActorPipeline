@@ -15,13 +15,13 @@ namespace ActorPipeline.Images2.Images
         private readonly FileStream fileStream;
         private readonly object fileStreamLock = new object();
 
-        public static RawFileImage OpenExisting(string filePath, int width, int height, ImageFormat format) =>
-            new RawFileImage(RawFileImageMode.Read, filePath, width, height, format);
+        public static RawFileImage OpenExisting(string filePath, ImageSize size, ImageFormat format) =>
+            new RawFileImage(RawFileImageMode.Read, filePath, size, format);
 
-        public static RawFileImage CreateNew(string filePath, int width, int height, ImageFormat format) =>
-            new RawFileImage(RawFileImageMode.Create, filePath, width, height, format);
+        public static RawFileImage CreateNew(string filePath, ImageSize size, ImageFormat format) =>
+            new RawFileImage(RawFileImageMode.Create, filePath, size, format);
 
-        protected RawFileImage(RawFileImageMode mode, string filePath, int width, int height, ImageFormat format) : base(width, height, format)
+        protected RawFileImage(RawFileImageMode mode, string filePath, ImageSize size, ImageFormat format) : base(size, format)
         {
             if (mode == RawFileImageMode.Read)
             {
@@ -34,7 +34,7 @@ namespace ActorPipeline.Images2.Images
                 if (fileInfo.Length != ImageSize)
                 {
                     throw new ArgumentException(
-                        $"File '{filePath}' length {fileInfo.Length} does not match expected length of {width * height}.");
+                        $"File '{filePath}' length {fileInfo.Length} does not match expected length of {Width * Height}.");
                 }
             }
 

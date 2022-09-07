@@ -12,6 +12,8 @@ namespace ActorPipeline.Messages
             {
                 DisplaySize = displaySize;
             }
+
+            public override string ToString() => $"Display_SetDisplaySize({DisplaySize})";
         }
 
         public sealed class SetDigitalZoomMessage
@@ -26,6 +28,8 @@ namespace ActorPipeline.Messages
                 PanX = panX;
                 PanY = panY;
             }
+
+            public override string ToString() => $"Display_SetDigitalZoom({ZoomFactor}, {PanX}, {PanY})";
         }
 
         public sealed class SetDisplaySettingsMessage
@@ -38,6 +42,8 @@ namespace ActorPipeline.Messages
                 RelativeRegion = relativeRegion;
                 DisplaySize = displaySize;
             }
+
+            public override string ToString() => $"Display_SetDisplaySettings({RelativeRegion}, {DisplaySize})";
 
         }
     }

@@ -22,7 +22,7 @@ namespace ActorPipeline.Actors.ImageGenerators
         {
             this.targetImage = targetImage;
             this.sourceImage =
-                InMemoryImageFactory.Instance.Create(targetImage.Width, targetImage.Height, targetImage.Format);
+                InMemoryImageFactory.Instance.Create(targetImage.Size, targetImage.Format);
             GenerateImage(sourceImage);
             var random = new Random();
             noise = Enumerable.Range(0, 16361).Select(_ => (sbyte)(random.Next(255)-128)).ToArray();

@@ -23,7 +23,8 @@ namespace ActorPipeline.Images2
         public int Width { get; }
         public int Height { get; }
 
-        public override string ToString() => $"{Width}x{Height}";
+        public override string ToString() => $"{Width} 🞪 {Height}";
+
         public bool Equals(ImageSize other)
         {
             return Width == other.Width && Height == other.Height;

@@ -25,9 +25,9 @@ namespace ActorPipeline.Actors
 
         private void HandleFormatChange(PipelineFilterMessages.FormatChangedMessage message)
         {
-            System.Diagnostics.Trace.WriteLine($"WpfImageControlUpdaterActor.HandleFormatChange({message.Width}, {message.Height}, {message.Format})");
+            LogMessage(message);
             var (format, bytesPerPixel) = GetPixelFormat(message.Format);
-            bitmap = new WriteableBitmap(message.Width, message.Height, 96.0, 96.0, format, null);    
+            bitmap = new WriteableBitmap(message.Size.Width, message.Size.Height, 96.0, 96.0, format, null);    
             this.bytesPerPixel = bytesPerPixel;
             ClearBitmap(bitmap);
             imageControl.Source = bitmap;
@@ -50,6 +50,7 @@ namespace ActorPipeline.Actors
 
         private void HandleImageUpdate(PipelineFilterMessages.PartialUpdateMessage message)
         {
+            LogMessage(message);
             if (bitmap == null)
             {
                 return;

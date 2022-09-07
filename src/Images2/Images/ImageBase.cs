@@ -5,14 +5,10 @@ namespace ActorPipeline.Images2.Images
 {
     public abstract class ImageBase : IImage
     {
-        protected ImageBase(int width, int height, ImageFormat format)
+        protected ImageBase(ImageSize size, ImageFormat format)
         {
-            if (width <= 0 || height <= 0)
-            {
-                throw new ArgumentException("Image size must be positive");
-            }
-            Width = width;
-            Height = height;
+            Width = size.Width;
+            Height = size.Height;
             Format = format;
         }
 

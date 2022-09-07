@@ -6,10 +6,11 @@ using ActorPipeline.Images2;
 using ActorPipeline.Messages;
 using Akka.Actor;
 using Cloo;
+using Serilog;
 
 namespace ActorPipeline.Actors.Downscaling
 {
-    internal unsafe class OpenClDownscalerActor : ReceiveActor
+    internal unsafe class OpenClDownscalerActor : LoggingActor
     {
         private readonly IActorRef parentDownscaler;
         private readonly ComputeContext clContext;
@@ -61,11 +62,13 @@ namespace ActorPipeline.Actors.Downscaling
 
         private void HandlePartialUpdate(PipelineFilterMessages.PartialUpdateMessage message)
         {
+            LogMessage(message);
             PerformPartialUpdateAndResize(message);
         }
 
         private void HandleSizesChange(DownscalingMessages.SetDownscalingSizesMessage message)
         {
+            LogMessage(message);
             bool needFullResize = false;
 
             if (InputBufferFormatChanged(message))
@@ -203,11 +206,6 @@ namespace ActorPipeline.Actors.Downscaling
         private void CreateNewInputBuffer(DownscalingMessages.SetDownscalingSizesMessage message)
         {
 #pragma warning disable CS0618
-            var supportedFormats = ComputeImage2D.GetSupportedFormats(clContext, ComputeMemoryFlags.WriteOnly);
-            foreach (var format in supportedFormats)
-            {
-                System.Diagnostics.Trace.WriteLine($"{format.ChannelOrder}, {format.ChannelType}");
-            }
             inputBuffer = new ComputeImage2D(clContext, ComputeMemoryFlags.ReadOnly, GetBufferFormat(message.Format),
                 message.InputSize.Width, message.InputSize.Height, 0, IntPtr.Zero);
 #pragma warning restore CS0618

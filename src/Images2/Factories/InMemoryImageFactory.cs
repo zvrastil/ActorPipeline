@@ -5,6 +5,6 @@ namespace ActorPipeline.Images2.Factories
     public class InMemoryImageFactory : IImageFactory
     {
         public static IImageFactory Instance { get; } = new InMemoryImageFactory();
-        public IImage Create(int width, int height, ImageFormat format) => new InMemoryImage(width, height, format);
+        public IImage Create(ImageSize size, ImageFormat format) => new InMemoryImage(size, format);
     }
 }

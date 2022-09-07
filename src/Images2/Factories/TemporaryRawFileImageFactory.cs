@@ -7,14 +7,14 @@ namespace ActorPipeline.Images2.Factories
     {
         public static IImageFactory Instance { get; } = new TemporaryRawFileImageFactory();
 
-        public IImage Create(int width, int height, ImageFormat format) => new TemporaryRawFileDecorator(TemporaryRawFileDecorator.GetTempFilePath(), width, height, format);
+        public IImage Create(ImageSize size, ImageFormat format) => new TemporaryRawFileDecorator(TemporaryRawFileDecorator.GetTempFilePath(), size, format);
 
         private class TemporaryRawFileDecorator : RawFileImage
         {
             private readonly string filePath;
 
-            public TemporaryRawFileDecorator(string filePath, int width, int height, ImageFormat format)
-                : base(RawFileImageMode.Create, filePath, width, height, format)
+            public TemporaryRawFileDecorator(string filePath, ImageSize size, ImageFormat format)
+                : base(RawFileImageMode.Create, filePath, size, format)
             {
                 this.filePath = filePath;
             }

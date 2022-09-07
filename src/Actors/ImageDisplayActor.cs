@@ -20,12 +20,14 @@ namespace ActorPipeline.Actors
 
         private void HandleDigitalZoom(DisplayMessages.SetDigitalZoomMessage message)
         {
+            LogMessage(message);
             digitalZoom = message;
             TellDownscalerIfReady();
         }
 
         private void HandleDisplaySize(DisplayMessages.SetDisplaySizeMessage message)
         {
+            LogMessage(message);
             displaySize = message;
             TellDownscalerIfReady();
         }

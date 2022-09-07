@@ -2,6 +2,6 @@
 {
     public interface IImageFactory
     {
-        IImage Create(int width, int height, ImageFormat format);
+        IImage Create(ImageSize size, ImageFormat format);
     }
 }

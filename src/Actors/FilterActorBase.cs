@@ -2,6 +2,8 @@
 using Akka.Actor;
 using System;
 using System.Collections.Generic;
+using Akka.Event;
+using System.Diagnostics;
 
 namespace ActorPipeline.Actors
 {
@@ -13,7 +15,7 @@ namespace ActorPipeline.Actors
         ProcessingFilter = SourceFilter | TargetFilter,
     }
 
-    public abstract class FilterActorBase : ReceiveActor
+    public abstract class FilterActorBase : LoggingActor
     {
         private readonly HashSet<IActorRef> subscribers = new HashSet<IActorRef>();
         private readonly FilterFlags filterFlags;
@@ -53,12 +55,14 @@ namespace ActorPipeline.Actors
 
         private void HandleSubscribe(PipelineFilterMessages.SubscribeMessage message)
         {
+            LogMessage(message);
             subscribers.Add(message.Subscriber);
             OnSubscribed(message.Subscriber);   
         }
 
         private void HandleConnectTo(PipelineFilterMessages.ConnectToMessage message)
         {
+            LogMessage(message);
             foreach (var sourceFilter in message.SourceFilters)
             {
                 sourceFilter.Tell(new PipelineFilterMessages.SubscribeMessage(Self));

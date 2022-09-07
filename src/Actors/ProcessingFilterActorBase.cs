@@ -20,12 +20,14 @@ namespace ActorPipeline.Actors
 
         protected virtual void HandleFormatChange(PipelineFilterMessages.FormatChangedMessage message)
         {
+            LogMessage(message);
             currentFormat = message;
             TellToSubscribers(message);
         }
 
         protected virtual void HandleImageUpdate(PipelineFilterMessages.PartialUpdateMessage message)
         {
+            LogMessage(message);
             TellToSubscribers(message);
         }
 

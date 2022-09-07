@@ -4,6 +4,6 @@ namespace ActorPipeline
 {
     public static class ActorGlobals
     {
-        public static ActorSystem ActorSystem { get; } = ActorSystem.Create("ActorPipeline");
+        public static ActorSystem ActorSystem { get; set; }
     }
 }

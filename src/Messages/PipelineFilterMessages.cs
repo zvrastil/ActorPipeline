@@ -22,6 +22,9 @@ namespace ActorPipeline.Messages
             }
 
             public IReadOnlyList<IActorRef> SourceFilters { get; }
+
+            public override string ToString() => $"PipelineFilter_ConnectTo({string.Join(", ", SourceFilters.Select(sf => sf.Path.Name))})";
+
         }
 
         public sealed class SubscribeMessage
@@ -32,27 +35,27 @@ namespace ActorPipeline.Messages
             }
 
             public IActorRef Subscriber { get; }
+
+            public override string ToString() => $"PipelineFilter_Subscribe({Subscriber.Path.Name})";
         }
 
         public sealed class FormatChangedMessage
         {
-            public FormatChangedMessage(int width, int height, ImageFormat format)
+            public FormatChangedMessage(ImageSize size, ImageFormat format)
             {
-                Width = width;
-                Height = height;
+                Size = size;
                 Format = format;
             }
 
             public FormatChangedMessage(IImage image)
             {
-                Width = image.Width;
-                Height = image.Height;
+                Size = image.Size;
                 Format = image.Format;
             }
 
-            public int Width { get; }
-            public int Height { get; }
+            public ImageSize Size { get; }
             public ImageFormat Format { get; }
+            public override string ToString() => $"PipelineFilter_FormatChanged({Size}, {Format})";
         }
 
         public sealed class PartialUpdateMessage
@@ -65,6 +68,8 @@ namespace ActorPipeline.Messages
 
             public ImageRegion Changed { get; }
             public byte[] Data { get; }
+
+            public override string ToString() => $"PipelineFilter_PartialUpdate({Changed}, byte[{Data.Length}])";
         }
                    
     }

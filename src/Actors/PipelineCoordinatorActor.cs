@@ -1,10 +1,11 @@
 ﻿using ActorPipeline.Messages;
 using Akka.Actor;
+using Akka.Event;
 using System.Collections.Generic;
 
 namespace ActorPipeline.Actors
 {
-    public class PipelineCoordinatorActor : ReceiveActor 
+    public class PipelineCoordinatorActor : LoggingActor
     {
         private readonly Dictionary<string, IActorRef> filters = new Dictionary<string, IActorRef>();
         private readonly List<IActorRef> sourceFilters = new List<IActorRef>();
@@ -20,6 +21,8 @@ namespace ActorPipeline.Actors
 
         private void HandleCreateFilter(PipelineControlMessages.CreateFilterMessage message)
         {
+            LogMessage(message);
+
             if (filters.ContainsKey(message.FilterProperties.Name))
             {
                 Sender.Tell(ActorRefs.Nobody);
@@ -35,6 +38,7 @@ namespace ActorPipeline.Actors
 
         private void ForwardToSourceFilters<T>(T message)
         {
+            LogMessage(message);
             sourceFilters.ForEach(filter => filter.Tell(message));
         }
         

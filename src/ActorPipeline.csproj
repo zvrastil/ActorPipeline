@@ -42,6 +42,9 @@
     <Reference Include="Akka, Version=1.4.41.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\Akka.1.4.41\lib\netstandard2.0\Akka.dll</HintPath>
     </Reference>
+    <Reference Include="Akka.Logger.Serilog, Version=1.4.26.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>packages\Akka.Logger.Serilog.1.4.26\lib\netstandard2.0\Akka.Logger.Serilog.dll</HintPath>
+    </Reference>
     <Reference Include="Cloo, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\Cloo.clSharp.1.0.1\lib\netstandard2.0\Cloo.dll</HintPath>
     </Reference>
@@ -50,6 +53,12 @@
     </Reference>
     <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
       <HintPath>packages\Newtonsoft.Json.12.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>packages\Serilog.2.10.0\lib\net46\Serilog.dll</HintPath>
+    </Reference>
+    <Reference Include="Serilog.Sinks.Debug, Version=2.0.0.0, Culture=neutral, PublicKeyToken=24c2f752a8e58a10, processorArchitecture=MSIL">
+      <HintPath>packages\Serilog.Sinks.Debug.2.0.0\lib\net46\Serilog.Sinks.Debug.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Buffers, Version=4.0.3.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
@@ -128,6 +137,7 @@
     <Compile Include="Actors\ImageGenerators\IImageGenerator.cs" />
     <Compile Include="Actors\ImageGenerators\MandelbrotImageGenerator.cs" />
     <Compile Include="Actors\ImageSourceActor.cs" />
+    <Compile Include="Actors\LoggingActor.cs" />
     <Compile Include="Actors\ProcessingFilterActorBase.cs" />
     <Compile Include="Actors\PipelineCoordinatorActor.cs" />
     <Compile Include="Actors\FilterActorBase.cs" />
@@ -138,7 +148,6 @@
     </Compile>
     <Compile Include="Crates\DwellTimeCrate.cs" />
     <Compile Include="Crates\ImageFormatCrate.cs" />
-    <Compile Include="Crates\ImageResolutionCrate.cs" />
     <Compile Include="Images2\Factories\InMemoryImageFactory.cs" />
     <Compile Include="Images2\Factories\TemporaryRawFileImageFactory.cs" />
     <Compile Include="Images2\FractionalImageRegion.cs" />

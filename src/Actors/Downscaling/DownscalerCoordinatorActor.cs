@@ -8,7 +8,7 @@ using Cloo;
 
 namespace ActorPipeline.Actors.Downscaling
 {
-    internal class DownscalerCoordinatorActor : ReceiveActor
+    internal class DownscalerCoordinatorActor : LoggingActor
     {
         private readonly IActorRef parentDownscaler;
         private readonly HashSet<IActorRef> downscalers = new HashSet<IActorRef>();
@@ -24,7 +24,7 @@ namespace ActorPipeline.Actors.Downscaling
             var device = platform.Devices.First(d => d.Type == ComputeDeviceTypes.Gpu);
             openClContext = new ComputeContext(new[] {device}, new ComputeContextPropertyList(platform), null, IntPtr.Zero);
 
-            downscalers.Add(Context.ActorOf(Props.Create(() => new OpenClDownscalerActor(Self, openClContext))));
+            downscalers.Add(Context.ActorOf(Props.Create(() => new OpenClDownscalerActor(Self, openClContext)), "openClDownscaler"));
             Receive<DownscalingMessages.SetDownscalingSettingsMessage>(HandleSettingsChange);
             Receive<PipelineFilterMessages.PartialUpdateMessage>(HandlePartialUpdate);
             Receive<DownscalingMessages.OutputUpdatedMessage>(HandleOutputUpdate);
@@ -39,6 +39,7 @@ namespace ActorPipeline.Actors.Downscaling
 
         private void HandleOutputUpdate(DownscalingMessages.OutputUpdatedMessage message)
         {
+            LogMessage(message);
             // combine data from multiple downscalers when we have them
             // now, just forward to parent
             parentDownscaler.Tell(message);
@@ -46,7 +47,9 @@ namespace ActorPipeline.Actors.Downscaling
 
         private void HandleSettingsChange(DownscalingMessages.SetDownscalingSettingsMessage message)
         {
-            var finalSizesMessage = new DownscalingMessages.SetDownscalingSizesMessage(new ImageSize(message.InputWidth, message.InputHeight),
+            LogMessage(message);
+
+            var finalSizesMessage = new DownscalingMessages.SetDownscalingSizesMessage(message.InputSize,
                 CalculateInputRegion(message), CalculateOutputSize(message), message.Format);
 
             parentDownscaler.Tell(finalSizesMessage);
@@ -59,6 +62,8 @@ namespace ActorPipeline.Actors.Downscaling
 
         private void HandlePartialUpdate(PipelineFilterMessages.PartialUpdateMessage message)
         {
+            LogMessage(message);
+
             foreach (var downscaler in downscalers)
             {
                 downscaler.Tell(message);
@@ -67,16 +72,16 @@ namespace ActorPipeline.Actors.Downscaling
 
         private static ImageRegion CalculateInputRegion(DownscalingMessages.SetDownscalingSettingsMessage message)
         {
-            var mustSeeRegion = message.ZoomedArea.ToPixels(new ImageSize(message.InputWidth, message.InputHeight));
-            double scale = Math.Min((double)message.DisplayWidth / mustSeeRegion.Width, (double)message.DisplayHeight / mustSeeRegion.Height);
-            ImageSize idealSize = new ImageSize((int)(message.DisplayWidth / scale + 0.5), (int)(message.DisplayHeight / scale + 0.5));
-            return mustSeeRegion.ExpandSafelyTo(idealSize, new ImageSize(message.InputWidth, message.InputHeight));
+            var mustSeeRegion = message.ZoomedArea.ToPixels(message.InputSize);
+            double scale = Math.Min((double)message.DisplaySize.Width / mustSeeRegion.Width, (double)message.DisplaySize.Height / mustSeeRegion.Height);
+            ImageSize idealSize = new ImageSize((int)(message.DisplaySize.Width / scale + 0.5), (int)(message.DisplaySize.Height / scale + 0.5));
+            return mustSeeRegion.ExpandSafelyTo(idealSize, message.InputSize);
         }
 
         private static ImageSize CalculateOutputSize(DownscalingMessages.SetDownscalingSettingsMessage message)
         {
             ImageSize inputRegionSize = CalculateInputRegion(message).Size;
-            double scale = Math.Min((double)message.DisplayWidth / inputRegionSize.Width, (double)message.DisplayHeight / inputRegionSize.Height);
+            double scale = Math.Min((double)message.DisplaySize.Width / inputRegionSize.Width, (double)message.DisplaySize.Height / inputRegionSize.Height);
             if (scale >= 1.0)
             {
                 return inputRegionSize;

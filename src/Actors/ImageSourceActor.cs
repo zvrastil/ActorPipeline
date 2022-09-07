@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using ActorPipeline.Images2.Factories;
+using Serilog.Core;
 
 namespace ActorPipeline.Actors
 {
@@ -23,7 +24,10 @@ namespace ActorPipeline.Actors
 
         #region Private Messages
 
-        private sealed class TimerTickMessage {}
+        private sealed class TimerTickMessage
+        {
+            public override string ToString() => "TimerTick";
+        }
 
         #endregion
 
@@ -56,6 +60,7 @@ namespace ActorPipeline.Actors
 
         private void HandleStart(PipelineControlMessages.StartMessage message)
         {
+            LogMessage(message);
             if (!IsImageFormatSet())
             {
                 throw new InvalidOperationException("Can't start pipeline when format is not known.");
@@ -72,12 +77,14 @@ namespace ActorPipeline.Actors
 
         private void HandleStop(PipelineControlMessages.StopMessage message)
         {
+            LogMessage(message);
             Become(IdleMessages);
             timer.Cancel();
         }
 
         private void HandleTimerTick(TimerTickMessage message)
         {
+            LogMessage(message);
             TimeSpan delta = DateTime.Now - lastTick;
             lastTick = DateTime.Now;
 
@@ -149,8 +156,9 @@ namespace ActorPipeline.Actors
 
         private void HandleFormatChange(PipelineControlMessages.SetImageFormatMessage message)
         {
+            LogMessage(message);
             sourceImage?.Dispose();
-            sourceImage = InMemoryImageFactory.Instance.Create(message.Width, message.Height, message.Format);
+            sourceImage = InMemoryImageFactory.Instance.Create(message.Size, message.Format);
             imageGenerator?.Dispose();
             imageGenerator = new MandelbrotImageGenerator(sourceImage, GetNoiseLevel(dwellTimeNanoseconds));
             lastTick = DateTime.Now;
@@ -160,6 +168,7 @@ namespace ActorPipeline.Actors
 
         private void HandleDwellTimeChange(PipelineControlMessages.SetDwellTimeMessage message)
         {
+            LogMessage(message);
             dwellTimeNanoseconds = message.DwellTimeNanoseconds;
             imageGenerator?.Reset(GetNoiseLevel(dwellTimeNanoseconds));
             lastTick = DateTime.Now;    

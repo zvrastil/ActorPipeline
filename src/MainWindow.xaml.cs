@@ -29,17 +29,17 @@ namespace ActorPipeline
             new ImageFormatCrate(ImageFormat.Color24, "RGB 24 bit"),
         };
 
-        private static readonly IReadOnlyList<ImageResolutionCrate> ImageResolutions = new List<ImageResolutionCrate>
+        private static readonly IReadOnlyList<ImageSize> ImageResolutions = new List<ImageSize>
         {
-            new ImageResolutionCrate(768, 512),
-            new ImageResolutionCrate(1536, 1024),
-            new ImageResolutionCrate(3072, 2048),
-            new ImageResolutionCrate(6144, 4096),
-            new ImageResolutionCrate(512, 442),
-            new ImageResolutionCrate(1024, 884),
-            new ImageResolutionCrate(2048, 1768),
-            new ImageResolutionCrate(4096, 3536),
-            new ImageResolutionCrate(8192, 8192),
+            new ImageSize(768, 512),
+            new ImageSize(1536, 1024),
+            new ImageSize(3072, 2048),
+            new ImageSize(6144, 4096),
+            new ImageSize(512, 442),
+            new ImageSize(1024, 884),
+            new ImageSize(2048, 1768),
+            new ImageSize(4096, 3536),
+            new ImageSize(8192, 8192),
         };
 
         private static readonly IReadOnlyList<DwellTimeCrate> DwellTimes = new List<DwellTimeCrate>
@@ -71,7 +71,6 @@ namespace ActorPipeline
         private void SetUpResolutionComboBox()
         {
             Resolution.ItemsSource = ImageResolutions;
-            Resolution.DisplayMemberPath = nameof(ImageResolutionCrate.Description);
             Resolution.SelectedIndex = 0;
             Resolution.SelectionChanged += ImageFormat_SelectionChanged;
         }
@@ -169,9 +168,9 @@ namespace ActorPipeline
 
         private void UpdateImageFormat()
         {
-            var res = (ImageResolutionCrate) Resolution.SelectedItem;
+            var res = (ImageSize) Resolution.SelectedItem;
             pipeline?.Tell(
-                new PipelineControlMessages.SetImageFormatMessage(res.Width, res.Height, (ImageFormat) Format.SelectedValue));
+                new PipelineControlMessages.SetImageFormatMessage(res, (ImageFormat) Format.SelectedValue));
         }
 
         private void UpdateDwellTime()
