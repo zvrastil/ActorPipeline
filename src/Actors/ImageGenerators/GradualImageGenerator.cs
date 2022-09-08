@@ -15,7 +15,7 @@ namespace ActorPipeline.Actors.ImageGenerators
             {
                 case ImageFormat.Grayscale8: return new Writer8Bit(targetImage);
                 case ImageFormat.Grayscale16: return new Writer16Bit(targetImage);
-                case ImageFormat.Color24: return new WriterRgb(targetImage);
+                case ImageFormat.Bgra32: return new WriterRgb(targetImage);
                 default: throw new NotSupportedException();
             }
         }

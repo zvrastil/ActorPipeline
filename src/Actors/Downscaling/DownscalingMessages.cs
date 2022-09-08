@@ -27,11 +27,11 @@ namespace ActorPipeline.Actors.Downscaling
         public sealed class SetDownscalingSizesMessage
         {
             public ImageSize InputSize { get; }
-            public ImageRegion FinalInputRegion { get; }
+            public FractionalImageRegion FinalInputRegion { get; }
             public ImageSize FinalOutputSize { get; }
             public ImageFormat Format { get; }
 
-            public SetDownscalingSizesMessage(ImageSize inputSize, ImageRegion finalInputRegion, ImageSize finalOutputSize, ImageFormat format)
+            public SetDownscalingSizesMessage(ImageSize inputSize, FractionalImageRegion finalInputRegion, ImageSize finalOutputSize, ImageFormat format)
             {
                 InputSize = inputSize;
                 FinalInputRegion = finalInputRegion;

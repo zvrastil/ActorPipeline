@@ -38,7 +38,7 @@
             <Button x:Name="StartStop" Margin="0,10" Grid.Row="9" Grid.ColumnSpan="2" Content="Start" Click="StartStop_Click"/>
         </Grid>
         <Border x:Name="ImageBorder" BorderThickness="0" Background="DimGray">
-            <Image x:Name="Image" Stretch="Uniform" RenderOptions.BitmapScalingMode="Linear"/>
+            <Image x:Name="Image" Stretch="Uniform" RenderOptions.BitmapScalingMode="NearestNeighbor"/>
         </Border>
     </DockPanel>
 </Window>

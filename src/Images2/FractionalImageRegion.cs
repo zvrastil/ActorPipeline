@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Windows;
 
 namespace ActorPipeline.Images2
 {
@@ -39,6 +40,10 @@ namespace ActorPipeline.Images2
 
         public double Right => Left + Width;
         public double Bottom => Top + Height;
+
+        public FractionalImageSize Size => new FractionalImageSize(Width, Height);
+
+        public FractionalImagePosition Center => new FractionalImagePosition(Left + Width / 2.0, Top + Height / 2.0);
 
         public FractionalImageRegion ZoomIn(double factor)
         {
@@ -97,6 +102,15 @@ namespace ActorPipeline.Images2
             }
 
             return Invalid;
+        }
+
+        public FractionalImageRegion ExpandSafelyTo(ImageSize idealSize, ImageSize fullImageSize)
+        {
+            double newWidth = Math.Min(idealSize.Width, fullImageSize.Width);
+            double newHeight = Math.Min(idealSize.Height, fullImageSize.Height);
+            double newLeft = Math.Max(0, Center.X - newWidth / 2);
+            double newTop = Math.Max(0, Center.Y - newHeight / 2);
+            return new FractionalImageRegion(newLeft, newTop, newWidth, newHeight);
         }
 
         public override string ToString() => $"[{Left}, {Top}, {Right}, {Bottom}] {Width}x{Height}";

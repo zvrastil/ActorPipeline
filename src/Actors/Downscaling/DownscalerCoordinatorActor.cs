@@ -70,26 +70,23 @@ namespace ActorPipeline.Actors.Downscaling
             }
         }
 
-        private static ImageRegion CalculateInputRegion(DownscalingMessages.SetDownscalingSettingsMessage message)
+        private static FractionalImageRegion CalculateInputRegion(DownscalingMessages.SetDownscalingSettingsMessage message)
         {
-            var mustSeeRegion = message.ZoomedArea.ToPixels(message.InputSize);
-            double scale = Math.Min((double)message.DisplaySize.Width / mustSeeRegion.Width, (double)message.DisplaySize.Height / mustSeeRegion.Height);
+            var mustSeeRegion = message.ZoomedArea.ToFractionalPixels(message.InputSize);
+            double scale = Math.Min(message.DisplaySize.Width / mustSeeRegion.Width, message.DisplaySize.Height / mustSeeRegion.Height);
             ImageSize idealSize = new ImageSize((int)(message.DisplaySize.Width / scale + 0.5), (int)(message.DisplaySize.Height / scale + 0.5));
             return mustSeeRegion.ExpandSafelyTo(idealSize, message.InputSize);
         }
 
         private static ImageSize CalculateOutputSize(DownscalingMessages.SetDownscalingSettingsMessage message)
         {
-            ImageSize inputRegionSize = CalculateInputRegion(message).Size;
+            FractionalImageSize inputRegionSize = CalculateInputRegion(message).Size;
             double scale = Math.Min((double)message.DisplaySize.Width / inputRegionSize.Width, (double)message.DisplaySize.Height / inputRegionSize.Height);
-            if (scale >= 1.0)
+            if (scale > 1.0)
             {
-                return inputRegionSize;
+                scale = 1.0;
             }
-            else
-            {
-                return new ImageSize((int)(scale * inputRegionSize.Width + 0.5), (int)(scale * inputRegionSize.Height + 0.5));
-            }
+            return new ImageSize((int)(scale * inputRegionSize.Width + 0.5), (int)(scale * inputRegionSize.Height + 0.5));
         }
 
     }

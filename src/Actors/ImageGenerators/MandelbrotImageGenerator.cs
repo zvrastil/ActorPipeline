@@ -25,7 +25,7 @@ namespace ActorPipeline.Actors.ImageGenerators
                 InMemoryImageFactory.Instance.Create(targetImage.Size, targetImage.Format);
             GenerateImage(sourceImage);
             var random = new Random();
-            noise = Enumerable.Range(0, 16361).Select(_ => (sbyte)(random.Next(255)-128)).ToArray();
+            noise = Enumerable.Range(0, 16361).Select(_ => (sbyte)(random.Next(255) - 128)).ToArray();
             Reset(noiseLevel);
         }
 
@@ -58,7 +58,7 @@ namespace ActorPipeline.Actors.ImageGenerators
             {
                 case ImageFormat.Grayscale8: return new PixelWriter8Bit(sourceImage, targetImage, row);
                 case ImageFormat.Grayscale16: return new PixelWriter16Bit(sourceImage, targetImage, row);
-                case ImageFormat.Color24: return new PixelWriter24Bit(sourceImage, targetImage, row);
+                case ImageFormat.Bgra32: return new PixelWriter24Bit(sourceImage, targetImage, row);
                 default: throw new NotSupportedException("Unsupported image format");
             }
         }
@@ -111,7 +111,7 @@ namespace ActorPipeline.Actors.ImageGenerators
             {
                 case ImageFormat.Grayscale8: return new Writer8bit(image, row);
                 case ImageFormat.Grayscale16: return new Writer16bit(image, row);
-                case ImageFormat.Color24: return new Writer24bit(image, row);
+                case ImageFormat.Bgra32: return new Writer24bit(image, row);
                 default: throw new NotSupportedException("Unsupported image format " + image.Format);
             }
         }
@@ -182,15 +182,15 @@ namespace ActorPipeline.Actors.ImageGenerators
             }
         }
 
-        private unsafe class PixelWriter24Bit : PixelWriterBase<RgbType>
+        private unsafe class PixelWriter24Bit : PixelWriterBase<BgraType>
         {
-            private RgbType* srcPtr;
-            private RgbType* dstPtr;
+            private BgraType* srcPtr;
+            private BgraType* dstPtr;
 
             public PixelWriter24Bit(IImage sourceImage, IImage targetImage, int row) : base(sourceImage, targetImage, row)
             {
-                srcPtr = (RgbType*)sourceAccess.Ptr;
-                dstPtr = (RgbType*)targetAccess.Ptr;
+                srcPtr = (BgraType*)sourceAccess.Ptr;
+                dstPtr = (BgraType*)targetAccess.Ptr;
             }
 
             public override void NextPixel(sbyte noise)
@@ -306,17 +306,17 @@ namespace ActorPipeline.Actors.ImageGenerators
             }
         }
 
-        private unsafe class Writer24bit : WriterMandelbrot<RgbType>
+        private unsafe class Writer24bit : WriterMandelbrot<BgraType>
         {
-            private RgbType* data;
-            private static readonly RgbType[] colorLookup;
+            private BgraType* data;
+            private static readonly BgraType[] colorLookup;
 
             static Writer24bit()
             {
                 colorLookup = Enumerable
                     .Range(0, kMax)
                     .Select(k => HSLtoRGB((double) k / kMax, 1.0, 0.5))
-                    .Concat(new[] {new RgbType(0,0,0)})
+                    .Concat(new[] {new BgraType(0,0,0)})
                     .ToArray();
 
             }
@@ -324,19 +324,19 @@ namespace ActorPipeline.Actors.ImageGenerators
 
             public Writer24bit(IImage targetImage, int row) : base(targetImage, row)
             {
-                data = (RgbType*) writeAccess.Ptr;
+                data = (BgraType*) writeAccess.Ptr;
             }
 
 
-            protected override RgbType CalculateColor(int k) => colorLookup[k];
+            protected override BgraType CalculateColor(int k) => colorLookup[k];
 
-            protected override void WriteNextColor(RgbType color)
+            protected override void WriteNextColor(BgraType color)
             {
                 *data = color;
                 data++;
             }
 
-            private static RgbType HSLtoRGB(double H, double S, double L)
+            private static BgraType HSLtoRGB(double H, double S, double L)
             {
                 double v;
                 double r, g, b;
@@ -407,7 +407,7 @@ namespace ActorPipeline.Actors.ImageGenerators
                 }
 
                 // Create Color object from RGB values.
-                return new RgbType((byte)(r * 255), (byte)(g * 255), (byte)(b * 255));
+                return new BgraType((byte)(b * 255), (byte)(g * 255), (byte)(r * 255));
             }
         }
 

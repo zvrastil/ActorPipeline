@@ -22,9 +22,9 @@ namespace ActorPipeline.Images2.Images
             {
                 switch (Format)
                 {
-                    case ImageFormat.Grayscale8: return 1;
-                    case ImageFormat.Grayscale16: return 2;
-                    case ImageFormat.Color24: return 3;
+                    case ImageFormat.Grayscale8: return sizeof(byte);
+                    case ImageFormat.Grayscale16: return sizeof(ushort);
+                    case ImageFormat.Bgra32: return 4;
                     default: throw new NotSupportedException("Unsupported image format");
                 }
             }

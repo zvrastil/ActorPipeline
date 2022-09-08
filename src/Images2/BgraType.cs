@@ -3,17 +3,19 @@
 namespace ActorPipeline.Images2
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct RgbType
+    public struct BgraType
     {
-        public RgbType(byte r, byte g, byte b)
+        public BgraType(byte b, byte g, byte r)
         {
-            R = r;
-            G = g;
             B = b;
+            G = g;
+            R = r;
+            A = 0;
         }
 
-        public byte R;
-        public byte G;
         public byte B;
+        public byte G;
+        public byte R;
+        public byte A;
     }
 }

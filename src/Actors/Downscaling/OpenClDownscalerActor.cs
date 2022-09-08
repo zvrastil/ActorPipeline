@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
@@ -6,7 +8,6 @@ using ActorPipeline.Images2;
 using ActorPipeline.Messages;
 using Akka.Actor;
 using Cloo;
-using Serilog;
 
 namespace ActorPipeline.Actors.Downscaling
 {
@@ -16,11 +17,12 @@ namespace ActorPipeline.Actors.Downscaling
         private readonly ComputeContext clContext;
         private ComputeCommandQueue clCommandQueue;
         private ComputeProgram clProgram;
-        private ComputeKernel clKernel;
+        private ComputeKernel clClearKernel;
+        private ComputeKernel clResizeKernel;
         private ComputeImage2D inputBuffer;
         private ComputeImage2D outputBuffer;
         private ImageFormat currentFormat;
-        private ImageRegion inputRegion;
+        private FractionalImageRegion inputRegion;
 
         public OpenClDownscalerActor(IActorRef parentDownscaler, ComputeContext clContext)
         {
@@ -38,7 +40,9 @@ namespace ActorPipeline.Actors.Downscaling
             {
                 throw new ApplicationException(clProgram.GetBuildLog(this.clContext.Devices[0]));
             }
-            clKernel = clProgram.CreateKernel("resize");
+
+            clClearKernel = clProgram.CreateKernel("clear");
+            clResizeKernel = clProgram.CreateKernel("resize");
 
             Receive<DownscalingMessages.SetDownscalingSizesMessage>(HandleSizesChange);
             Receive<PipelineFilterMessages.PartialUpdateMessage>(HandlePartialUpdate);
@@ -50,8 +54,10 @@ namespace ActorPipeline.Actors.Downscaling
             inputBuffer = null;
             outputBuffer?.Dispose();
             outputBuffer = null;
-            clKernel?.Dispose();
-            clKernel = null;
+            clResizeKernel?.Dispose();
+            clResizeKernel = null;
+            clClearKernel?.Dispose();
+            clClearKernel = null;
             clProgram?.Dispose();
             clProgram = null;
             clCommandQueue?.Dispose();
@@ -76,11 +82,13 @@ namespace ActorPipeline.Actors.Downscaling
                 CreateNewInputBuffer(message);
             }
 
-            if (OutputSizeChanged(message))
+            if (OutputSizeOrFormatChanged(message))
             {
                 CreateNewOutputBuffer(message);
                 needFullResize = true;
             }
+
+            currentFormat = message.Format;
 
             if (ZoomedRegionChanged(message))
             {
@@ -96,19 +104,31 @@ namespace ActorPipeline.Actors.Downscaling
 
         private void PerformFullResize()
         {
-            CLImageSize inputSize = new CLImageSize {Width = (uint) inputBuffer.Width, Height = (uint) inputBuffer.Height};
-            CLImageSize outputSize = new CLImageSize { Width = (uint)outputBuffer.Width, Height = (uint)outputBuffer.Height };
-            clKernel.SetMemoryArgument(0, inputBuffer);
-            clKernel.SetMemoryArgument(1, outputBuffer);
-            clKernel.SetValueArgument(2, inputSize);
-            clKernel.SetValueArgument(3, outputSize);
-            clCommandQueue.Execute(clKernel, null, new long[] {outputBuffer.Width, outputBuffer.Height}, null, null);
+            var sw = Stopwatch.StartNew();
+            CLImageRegion inRegion = new CLImageRegion 
+            {
+                Left = (float) inputRegion.Left, Top = (float) inputRegion.Top, Width = (float) inputRegion.Width, Height = (float) inputRegion.Height
+            };
+            CLImageSize outputSize = new CLImageSize
+            {
+                Width = (uint)outputBuffer.Width, Height = (uint)outputBuffer.Height
+            };
+            clResizeKernel.SetMemoryArgument(0, inputBuffer);
+            clResizeKernel.SetMemoryArgument(1, outputBuffer);
+            clResizeKernel.SetValueArgument(2, inRegion);
+            clResizeKernel.SetValueArgument(3, outputSize);
+
+            var events = new List<ComputeEventBase>();
+            clCommandQueue.Execute(clResizeKernel, null, new long[] {outputBuffer.Width, outputBuffer.Height}, null, events);
 
             byte[] data = new byte[outputBuffer.Height * outputBuffer.RowPitch];
             fixed (byte* ptr = data)
             {
-                clCommandQueue.ReadFromImage(outputBuffer, new IntPtr(ptr), true, null);
+                clCommandQueue.ReadFromImage(outputBuffer, new IntPtr(ptr), true, events);
             }
+            logger.Debug($"  OpenCL FullResize {inRegion.Width:F1}x{inRegion.Height:F1} -> {outputSize.Width}x{outputSize.Height} finished in {sw.ElapsedMilliseconds} ms");
+
+            events.ForEach(e => e.Dispose());
 
             parentDownscaler.Tell(
                 new DownscalingMessages.OutputUpdatedMessage(
@@ -118,68 +138,89 @@ namespace ActorPipeline.Actors.Downscaling
 
         private void PerformPartialUpdateAndResize(PipelineFilterMessages.PartialUpdateMessage message)
         {
+            var unmapping = CopyDataToInputBuffer(message);
+            
             var realUpdatedRegion = inputRegion.IntersectWith(message.Changed);
-            if (realUpdatedRegion == ImageRegion.Invalid)
+            if (realUpdatedRegion == FractionalImageRegion.Invalid)
             {
-                // nothing to update
+                unmapping.Dispose();
+                // nothing to resize
                 return;
             }
-            CopyDataToInputBuffer(message, realUpdatedRegion);
+            
             ImageRegion outputUpdatedRegion = CalculateOutputUpdatedRegion(realUpdatedRegion);
-            PerformPartialResize(outputUpdatedRegion);
+
+            var outputUpdatedMessage = PerformPartialResize(outputUpdatedRegion, unmapping);
+            parentDownscaler.Tell(outputUpdatedMessage);
         }
 
-        private ImageRegion CalculateOutputUpdatedRegion(ImageRegion inputUpdatedRegion)
+        private ImageRegion CalculateOutputUpdatedRegion(FractionalImageRegion inputUpdatedRegion)
         {
-            double scale = (double) outputBuffer.Width / inputRegion.Width;
+            double scale = outputBuffer.Width / inputRegion.Width;
             int left = Fit((int) Math.Floor((inputUpdatedRegion.Left-inputRegion.Left) * scale), 0, outputBuffer.Width);
             int top = Fit((int) Math.Floor((inputUpdatedRegion.Top-inputRegion.Top) * scale), 0, outputBuffer.Height);
-            int right = Fit((int) Math.Ceiling((inputUpdatedRegion.Right-inputRegion.Left) * scale), 0, outputBuffer.Width);
-            int bottom = Fit((int) Math.Ceiling((inputUpdatedRegion.Bottom-inputRegion.Top) * scale), 0, outputBuffer.Height);
+            int right = Fit((int) Math.Ceiling((inputUpdatedRegion.Right-inputRegion.Left) * scale), 1, outputBuffer.Width);
+            int bottom = Fit((int) Math.Ceiling((inputUpdatedRegion.Bottom-inputRegion.Top) * scale), 1, outputBuffer.Height);
             return new ImageRegion(left, top, right - left, bottom - top);
         }
 
         private static int Fit(int x, int min, int max) => Math.Max(min, Math.Min(x, max));
         
-        private void PerformPartialResize(ImageRegion outputUpdatedRegion)
+        private DownscalingMessages.OutputUpdatedMessage PerformPartialResize(ImageRegion outputUpdatedRegion, ComputeEventBase unmapping)
         {
-            CLImageSize inputSize = new CLImageSize {Width = (uint) inputBuffer.Width, Height = (uint) inputBuffer.Height};
+            var sw = Stopwatch.StartNew();
+            CLImageRegion inRegion = new CLImageRegion
+            {
+                Left = (float)inputRegion.Left,
+                Top = (float)inputRegion.Top,
+                Width = (float)inputRegion.Width,
+                Height = (float)inputRegion.Height
+            };
             CLImageSize outputSize = new CLImageSize { Width = (uint)outputBuffer.Width, Height = (uint)outputBuffer.Height };
-            clKernel.SetMemoryArgument(0, inputBuffer);
-            clKernel.SetMemoryArgument(1, outputBuffer);
-            clKernel.SetValueArgument(2, inputSize);
-            clKernel.SetValueArgument(3, outputSize);
+            clResizeKernel.SetMemoryArgument(0, inputBuffer);
+            clResizeKernel.SetMemoryArgument(1, outputBuffer);
+            clResizeKernel.SetValueArgument(2, inRegion);
+            clResizeKernel.SetValueArgument(3, outputSize);
 
-            clCommandQueue.Execute(clKernel, new long[]{outputUpdatedRegion.Left, outputUpdatedRegion.Top}, new long[] {outputUpdatedRegion.Width, outputUpdatedRegion.Height}, null, null);
+            var events = new List<ComputeEventBase> {unmapping};
+            clCommandQueue.Execute(clResizeKernel, new long[]{outputUpdatedRegion.Left, outputUpdatedRegion.Top}, new long[] {outputUpdatedRegion.Width, outputUpdatedRegion.Height}, null, 
+                events);
 
-            int bytesPerPixel = GetBytesPerPixel(currentFormat);
+            int bytesPerPixel = inputBuffer.ElementSize;
             byte[] data = new byte[outputUpdatedRegion.Width * outputUpdatedRegion.Height * bytesPerPixel];
             var outputBufferPtr = clCommandQueue.Map(outputBuffer, true, ComputeMemoryMappingFlags.Read,
                 new SysIntX3(outputUpdatedRegion.Left, outputUpdatedRegion.Top, 0),
                 new SysIntX3(outputUpdatedRegion.Width, outputUpdatedRegion.Height, 1),
-                null);
+                events);
             Marshal.Copy(outputBufferPtr, data, 0, data.Length);
             clCommandQueue.Unmap(outputBuffer, ref outputBufferPtr, null);
+            double scale = (double) inRegion.Height / outputSize.Height;
 
-            parentDownscaler.Tell(new DownscalingMessages.OutputUpdatedMessage(outputUpdatedRegion, data));
+            events.ForEach(e => e.Dispose());
+            logger.Debug($"  OpenCL PartialResize {outputUpdatedRegion.Width*scale:F1}x{outputUpdatedRegion.Height*scale:F1} -> {outputUpdatedRegion.Width}x{outputUpdatedRegion.Height} finished in {sw.ElapsedMilliseconds} ms");
+
+            return new DownscalingMessages.OutputUpdatedMessage(outputUpdatedRegion, data);
         }
 
-        private void CopyDataToInputBuffer(PipelineFilterMessages.PartialUpdateMessage message, ImageRegion realUpdatedRegion)
+        private ComputeEventBase CopyDataToInputBuffer(PipelineFilterMessages.PartialUpdateMessage message)
         {
             var inputBufferPtr = clCommandQueue.Map(inputBuffer, true, ComputeMemoryMappingFlags.Write,
-                new SysIntX3(realUpdatedRegion.Left, realUpdatedRegion.Top, 0),
-                new SysIntX3(realUpdatedRegion.Width, realUpdatedRegion.Height, 1),
+                new SysIntX3(message.Changed.Left, message.Changed.Top, 0),
+                new SysIntX3(message.Changed.Width, message.Changed.Height, 1),
                 null);
-            int bytesPerPixel = GetBytesPerPixel(currentFormat);
-            for (int i = 0; i < realUpdatedRegion.Height; i++)
+            int bytesPerPixel = inputBuffer.ElementSize;
+            for (int i = 0; i < message.Changed.Height; i++)
             {
-                int y = i + realUpdatedRegion.Top - message.Changed.Top;
-                int x = realUpdatedRegion.Left - message.Changed.Left;
+                int y = i + message.Changed.Top - message.Changed.Top;
+                int x = message.Changed.Left - message.Changed.Left;
                 int startIndex = y * message.Changed.Width * bytesPerPixel + x * bytesPerPixel;
-                int length = realUpdatedRegion.Width * bytesPerPixel;
-                Marshal.Copy(message.Data, startIndex, inputBufferPtr+i*realUpdatedRegion.Width*bytesPerPixel, length);
+                int length = message.Changed.Width * bytesPerPixel;
+                Marshal.Copy(message.Data, startIndex, inputBufferPtr+i* message.Changed.Width*bytesPerPixel, length);
             }
-            clCommandQueue.Unmap(inputBuffer, ref inputBufferPtr, null);
+
+            var events = new List<ComputeEventBase>();
+            clCommandQueue.Unmap(inputBuffer, ref inputBufferPtr, events);
+            return events[0];
         }
 
         private bool ZoomedRegionChanged(DownscalingMessages.SetDownscalingSizesMessage message)
@@ -187,9 +228,10 @@ namespace ActorPipeline.Actors.Downscaling
             return inputRegion != message.FinalInputRegion;
         }
 
-        private bool OutputSizeChanged(DownscalingMessages.SetDownscalingSizesMessage message)
+        private bool OutputSizeOrFormatChanged(DownscalingMessages.SetDownscalingSizesMessage message)
         {
             return outputBuffer == null ||
+                   message.Format != currentFormat ||
                    outputBuffer.Width != message.FinalOutputSize.Width ||
                    outputBuffer.Height != message.FinalOutputSize.Height;
         }
@@ -206,10 +248,10 @@ namespace ActorPipeline.Actors.Downscaling
         {
             inputBuffer?.Dispose();
 #pragma warning disable CS0618
-            inputBuffer = new ComputeImage2D(clContext, ComputeMemoryFlags.ReadOnly, GetBufferFormat(message.Format),
+            inputBuffer = new ComputeImage2D(clContext, ComputeMemoryFlags.ReadWrite, GetBufferFormat(message.Format),
                 message.InputSize.Width, message.InputSize.Height, 0, IntPtr.Zero);
 #pragma warning restore CS0618
-            currentFormat = message.Format;
+            ClearBuffer(inputBuffer);
         }
 
         private void CreateNewOutputBuffer(DownscalingMessages.SetDownscalingSizesMessage message)
@@ -219,18 +261,13 @@ namespace ActorPipeline.Actors.Downscaling
             outputBuffer = new ComputeImage2D(clContext, ComputeMemoryFlags.WriteOnly, GetBufferFormat(message.Format),
                 message.FinalOutputSize.Width, message.FinalOutputSize.Height, 0, IntPtr.Zero);
 #pragma warning restore CS0618
+            ClearBuffer(outputBuffer);
         }
 
-        private static int GetBytesPerPixel(ImageFormat format)
+        private void ClearBuffer(ComputeImage2D buffer)
         {
-            switch (format)
-            {
-                case ImageFormat.Grayscale8: return 1;
-                case ImageFormat.Grayscale16: return 2;
-                case ImageFormat.Color24: return 3;
-                default:
-                    throw new NotSupportedException("Unsupported image format");
-            }
+            clClearKernel.SetMemoryArgument(0, buffer);
+            clCommandQueue.Execute(clClearKernel, null, new long[] { buffer.Width, buffer.Height }, null, null);
         }
 
         private static ComputeImageFormat GetBufferFormat(ImageFormat format)
@@ -243,7 +280,7 @@ namespace ActorPipeline.Actors.Downscaling
                 case ImageFormat.Grayscale16:
                     return new ComputeImageFormat(ComputeImageChannelOrder.Luminance,
                         ComputeImageChannelType.UNormInt16);
-                case ImageFormat.Color24:
+                case ImageFormat.Bgra32:
                     return new ComputeImageFormat(ComputeImageChannelOrder.Rgba,
                         ComputeImageChannelType.UnsignedInt8);
                 default:
@@ -264,6 +301,14 @@ namespace ActorPipeline.Actors.Downscaling
         {
             public uint Width;
             public uint Height;
-        };
+        }
+
+        private struct CLImageRegion
+        {
+            public float Left;
+            public float Top;
+            public float Width;
+            public float Height;
+        }
     }
 }

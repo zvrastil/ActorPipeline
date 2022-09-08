@@ -26,6 +26,7 @@
     <WarningLevel>4</WarningLevel>
     <Prefer32Bit>false</Prefer32Bit>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <UseVSHostingProcess>true</UseVSHostingProcess>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -150,7 +151,9 @@
     <Compile Include="Crates\ImageFormatCrate.cs" />
     <Compile Include="Images2\Factories\InMemoryImageFactory.cs" />
     <Compile Include="Images2\Factories\TemporaryRawFileImageFactory.cs" />
+    <Compile Include="Images2\FractionalImagePosition.cs" />
     <Compile Include="Images2\FractionalImageRegion.cs" />
+    <Compile Include="Images2\FractionalImageSize.cs" />
     <Compile Include="Images2\IContinuousImage.cs" />
     <Compile Include="Images2\IImage.cs" />
     <Compile Include="Images2\IImageFactory.cs" />
@@ -163,7 +166,7 @@
     <Compile Include="Images2\Images\ImageBase.cs" />
     <Compile Include="Images2\Images\InMemoryImage.cs" />
     <Compile Include="Images2\Images\RawFileImage.cs" />
-    <Compile Include="Images2\RgbType.cs" />
+    <Compile Include="Images2\BgraType.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>

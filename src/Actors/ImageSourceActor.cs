@@ -89,7 +89,6 @@ namespace ActorPipeline.Actors
             lastTick = DateTime.Now;
 
             int pixelsToChange =  Math.Min(sourceImage.Width*sourceImage.Height, (int)(delta.TotalSeconds * 1e9 / dwellTimeNanoseconds));
-            //int pixelsToChange = (int)(delta.TotalSeconds * 1e9 / dwellTimeNanoseconds);
             imageGenerator.GenerateNextPixels(pixelsToChange);
 
             if (lastPosition.Y != imageGenerator.Position.Y || lastFrame != imageGenerator.Frame)

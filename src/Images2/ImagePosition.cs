@@ -37,7 +37,7 @@ namespace ActorPipeline.Images2
 
         public override bool Equals(object obj)
         {
-            return obj is ImageSize other && Equals(other);
+            return obj is ImagePosition other && Equals(other);
         }
 
         public override int GetHashCode()

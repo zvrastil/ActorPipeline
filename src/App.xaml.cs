@@ -13,12 +13,12 @@ namespace ActorPipeline
         {
             var logger = new LoggerConfiguration()
                 .WriteTo.Debug()
-                .MinimumLevel.Information()
+                .MinimumLevel.Warning()
                 .CreateLogger();
 
             Log.Logger = logger;
 
-            ActorGlobals.ActorSystem = ActorSystem.Create("ActorPipeline","akka { loglevel=INFO,  loggers=[\"Akka.Logger.Serilog.SerilogLogger, Akka.Logger.Serilog\"]}");
+            ActorGlobals.ActorSystem = ActorSystem.Create("ActorPipeline","akka { loglevel=WARNING,  loggers=[\"Akka.Logger.Serilog.SerilogLogger, Akka.Logger.Serilog\"]}");
         }
 
         private void Application_Exit(object sender, ExitEventArgs e)

@@ -10,6 +10,6 @@ namespace ActorPipeline.Images2
     {
         Grayscale8,
         Grayscale16,
-        Color24
+        Bgra32
     }
 }

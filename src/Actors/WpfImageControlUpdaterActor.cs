@@ -80,7 +80,7 @@ namespace ActorPipeline.Actors
             {
                 case ImageFormat.Grayscale8: return (PixelFormats.Gray8, 1);
                 case ImageFormat.Grayscale16: return (PixelFormats.Gray16, 2);
-                case ImageFormat.Color24: return (PixelFormats.Rgb24, 3);
+                case ImageFormat.Bgra32: return (PixelFormats.Bgr32, 4);
                 default: throw new ArgumentException($"Unknown pixel format {format}", nameof(format));
             }
         }

@@ -26,7 +26,7 @@ namespace ActorPipeline
         { 
             new ImageFormatCrate(ImageFormat.Grayscale8, "GrayScale 8 bit"),
             new ImageFormatCrate(ImageFormat.Grayscale16, "GrayScale 16 bit"),
-            new ImageFormatCrate(ImageFormat.Color24, "RGB 24 bit"),
+            new ImageFormatCrate(ImageFormat.Bgra32, "RGB 24 bit"),
         };
 
         private static readonly IReadOnlyList<ImageSize> ImageResolutions = new List<ImageSize>
@@ -40,6 +40,7 @@ namespace ActorPipeline
             new ImageSize(2048, 1768),
             new ImageSize(4096, 3536),
             new ImageSize(8192, 8192),
+            new ImageSize(16384, 16384),
         };
 
         private static readonly IReadOnlyList<DwellTimeCrate> DwellTimes = new List<DwellTimeCrate>
