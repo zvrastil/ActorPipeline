@@ -284,8 +284,8 @@ namespace ActorPipeline.Actors.Downscaling
                     return new ComputeImageFormat(ComputeImageChannelOrder.Luminance,
                         ComputeImageChannelType.UNormInt16);
                 case ImageFormat.Bgra32:
-                    return new ComputeImageFormat(ComputeImageChannelOrder.Rgba,
-                        ComputeImageChannelType.UnsignedInt8);
+                    return new ComputeImageFormat(ComputeImageChannelOrder.Bgra,
+                        ComputeImageChannelType.UNormInt8);
                 default:
                     throw new NotSupportedException("Unsupported image format");
             }
