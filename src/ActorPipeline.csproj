@@ -127,8 +127,8 @@
       <SubType>Designer</SubType>
     </Page>
     <Compile Include="ActorGlobals.cs" />
-    <Compile Include="Actors\Downscaling\DownscalerCoordinatorActor.cs" />
     <Compile Include="Actors\Downscaling\DownscalingMessages.cs" />
+    <Compile Include="Actors\Downscaling\DownscalingSizes.cs" />
     <Compile Include="Actors\Downscaling\OpenClDownscalerActor.cs" />
     <Compile Include="Actors\ImageDisplayActor.cs" />
     <Compile Include="Actors\ImageDownscalerActor.cs" />

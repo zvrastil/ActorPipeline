@@ -1,6 +1,5 @@
 ﻿
 using ActorPipeline.Actors.Downscaling;
-using ActorPipeline.Images2;
 using ActorPipeline.Messages;
 using Akka.Actor;
 
@@ -10,8 +9,8 @@ namespace ActorPipeline.Actors
     {
         private PipelineFilterMessages.FormatChangedMessage inputFormat;
         private DisplayMessages.SetDisplaySettingsMessage outputSettings;
-        private DownscalingMessages.SetDownscalingSizesMessage outputFormat;
-        private readonly IActorRef downscalerCoordinator;
+        private DownscalingSizes outputFormat;
+        private readonly IActorRef downscaler;
 
         public ImageDownscalerActor() : base(FilterFlags.ProcessingFilter)
         {
@@ -21,7 +20,7 @@ namespace ActorPipeline.Actors
             Receive<PipelineFilterMessages.PartialUpdateMessage>(HandlePartialUpdate);
             Receive<DownscalingMessages.SetDownscalingSizesMessage>(HandleFinalSizes);
             Receive<DownscalingMessages.OutputUpdatedMessage>(HandleOutputUpdated);
-            downscalerCoordinator = Context.ActorOf(Props.Create(() => new DownscalerCoordinatorActor(Self)), "downscalerCoordinator");
+            downscaler = Context.ActorOf(Props.Create(() => new OpenClDownscalerActor(Self)), "downscaler");
         }
 
         private void HandleOutputUpdated(DownscalingMessages.OutputUpdatedMessage message)
@@ -33,7 +32,7 @@ namespace ActorPipeline.Actors
         private void HandleFinalSizes(DownscalingMessages.SetDownscalingSizesMessage message)
         {
             LogMessage(message);
-            outputFormat = message;
+            outputFormat = message.Sizes;
             TellToSubscribers(CreateOutputFormatMessage());
         }
 
@@ -49,7 +48,7 @@ namespace ActorPipeline.Actors
             {
                 return;
             }
-            downscalerCoordinator.Tell(message);
+            downscaler.Tell(message);
         }
 
         private void HandleFormatChange(PipelineFilterMessages.FormatChangedMessage message)
@@ -82,7 +81,7 @@ namespace ActorPipeline.Actors
                 return;
             }
 
-            downscalerCoordinator.Tell(new DownscalingMessages.SetDownscalingSettingsMessage(
+            downscaler.Tell(new DownscalingMessages.SetDownscalingSettingsMessage(
                 inputFormat.Size,
                 outputSettings.DisplaySize, 
                 inputFormat.Format,

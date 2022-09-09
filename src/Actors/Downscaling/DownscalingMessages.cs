@@ -26,23 +26,14 @@ namespace ActorPipeline.Actors.Downscaling
 
         public sealed class SetDownscalingSizesMessage
         {
-            public long Id { get; }
-            public ImageSize InputSize { get; }
-            public FractionalImageRegion FinalInputRegion { get; }
-            public ImageSize FinalOutputSize { get; }
-            public ImageFormat Format { get; }
-
-            public SetDownscalingSizesMessage(long id, ImageSize inputSize, FractionalImageRegion finalInputRegion, ImageSize finalOutputSize, ImageFormat format)
+            public SetDownscalingSizesMessage(DownscalingSizes sizes)
             {
-                Id = id;
-                InputSize = inputSize;
-                FinalInputRegion = finalInputRegion;
-                FinalOutputSize = finalOutputSize;
-                Format = format;
+                Sizes = sizes;
             }
 
-            public override string ToString() =>
-                $"Downscaling_SetDownscalingSizes(id: {Id}, inputSize: {InputSize}, finalInputRegion: {FinalInputRegion}, finalOutputSize:{FinalOutputSize}, format: {Format})";
+            public DownscalingSizes Sizes { get; }
+
+            public override string ToString() => $"Downscaling_SetDownscalingSizes({Sizes})";
         }
 
         public sealed class OutputUpdatedMessage

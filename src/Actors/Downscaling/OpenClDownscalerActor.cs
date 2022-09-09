@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using ActorPipeline.Images2;
@@ -14,21 +15,26 @@ namespace ActorPipeline.Actors.Downscaling
     internal unsafe class OpenClDownscalerActor : LoggingActor
     {
         private readonly IActorRef parentDownscaler;
+
         private readonly ComputeContext clContext;
-        private ComputeCommandQueue clCommandQueue;
-        private ComputeProgram clProgram;
-        private ComputeKernel clClearKernel;
-        private ComputeKernel clResizeKernel;
+        private readonly ComputeCommandQueue clCommandQueue;
+        private readonly ComputeProgram clProgram;
+        private readonly ComputeKernel clClearKernel;
+        private readonly ComputeKernel clResizeKernel;
         private ComputeImage2D inputBuffer;
         private ComputeImage2D outputBuffer;
         private ImageFormat currentFormat;
         private FractionalImageRegion inputRegion;
         private long currentFormatId;
 
-        public OpenClDownscalerActor(IActorRef parentDownscaler, ComputeContext clContext)
+        public OpenClDownscalerActor(IActorRef parentDownscaler)
         {
             this.parentDownscaler = parentDownscaler;
-            this.clContext = clContext;
+
+            var platform = ComputePlatform.Platforms.First();
+            var device = platform.Devices.First(d => d.Type == ComputeDeviceTypes.Gpu);
+            clContext = new ComputeContext(new[] { device }, new ComputeContextPropertyList(platform), null, IntPtr.Zero);
+            
             clCommandQueue =
                 new ComputeCommandQueue(clContext, clContext.Devices[0], ComputeCommandQueueFlags.None);
 
@@ -45,26 +51,33 @@ namespace ActorPipeline.Actors.Downscaling
             clClearKernel = clProgram.CreateKernel("clear");
             clResizeKernel = clProgram.CreateKernel("resize");
 
-            Receive<DownscalingMessages.SetDownscalingSizesMessage>(HandleSizesChange);
+            Receive<DownscalingMessages.SetDownscalingSettingsMessage>(HandleSettingsChange);
             Receive<PipelineFilterMessages.PartialUpdateMessage>(HandlePartialUpdate);
         }
 
         protected override void PostStop()
         {
             inputBuffer?.Dispose();
-            inputBuffer = null;
             outputBuffer?.Dispose();
-            outputBuffer = null;
             clResizeKernel?.Dispose();
-            clResizeKernel = null;
             clClearKernel?.Dispose();
-            clClearKernel = null;
             clProgram?.Dispose();
-            clProgram = null;
             clCommandQueue?.Dispose();
-            clCommandQueue = null;
+            clContext?.Dispose();           
 
             base.PostStop();
+        }
+
+        private void HandleSettingsChange(DownscalingMessages.SetDownscalingSettingsMessage message)
+        {
+            LogMessage(message);
+
+            var finalSizes = new DownscalingSizes(MessageIdSource.NextId(), message.InputSize,
+                CalculateInputRegion(message), CalculateOutputSize(message), message.Format);
+            parentDownscaler.Tell(new DownscalingMessages.SetDownscalingSizesMessage(finalSizes));
+
+            HandleSizesChange(finalSizes);
+            
         }
 
         private void HandlePartialUpdate(PipelineFilterMessages.PartialUpdateMessage message)
@@ -73,29 +86,29 @@ namespace ActorPipeline.Actors.Downscaling
             PerformPartialUpdateAndResize(message);
         }
 
-        private void HandleSizesChange(DownscalingMessages.SetDownscalingSizesMessage message)
+        private void HandleSizesChange(DownscalingSizes sizes)
         {
-            LogMessage(message);
+            LogMessage(sizes);
 
             bool needFullResize = false;
 
-            if (InputBufferFormatChanged(message))
+            if (InputBufferFormatChanged(sizes))
             {
-                CreateNewInputBuffer(message);
+                CreateNewInputBuffer(sizes);
             }
 
-            if (OutputSizeOrFormatChanged(message))
+            if (OutputSizeOrFormatChanged(sizes))
             {
-                CreateNewOutputBuffer(message);
+                CreateNewOutputBuffer(sizes);
                 needFullResize = true;
             }
 
-            currentFormatId = message.Id;
-            currentFormat = message.Format;
+            currentFormatId = sizes.Id;
+            currentFormat = sizes.Format;
 
-            if (ZoomedRegionChanged(message))
+            if (ZoomedRegionChanged(sizes))
             {
-                inputRegion = message.FinalInputRegion;
+                inputRegion = sizes.FinalInputRegion;
                 needFullResize = true;
             }
 
@@ -226,43 +239,43 @@ namespace ActorPipeline.Actors.Downscaling
             return events[0];
         }
 
-        private bool ZoomedRegionChanged(DownscalingMessages.SetDownscalingSizesMessage message)
+        private bool ZoomedRegionChanged(DownscalingSizes sizes)
         {
-            return inputRegion != message.FinalInputRegion;
+            return inputRegion != sizes.FinalInputRegion;
         }
 
-        private bool OutputSizeOrFormatChanged(DownscalingMessages.SetDownscalingSizesMessage message)
+        private bool OutputSizeOrFormatChanged(DownscalingSizes sizes)
         {
             return outputBuffer == null ||
-                   message.Format != currentFormat ||
-                   outputBuffer.Width != message.FinalOutputSize.Width ||
-                   outputBuffer.Height != message.FinalOutputSize.Height;
+                   sizes.Format != currentFormat ||
+                   outputBuffer.Width != sizes.FinalOutputSize.Width ||
+                   outputBuffer.Height != sizes.FinalOutputSize.Height;
         }
 
-        private bool InputBufferFormatChanged(DownscalingMessages.SetDownscalingSizesMessage message)
+        private bool InputBufferFormatChanged(DownscalingSizes sizes)
         {
             return (inputBuffer == null ||
-                    message.Format != currentFormat ||
-                    message.InputSize.Width != inputBuffer.Width ||
-                    message.InputSize.Height != inputBuffer.Height);
+                    sizes.Format != currentFormat ||
+                    sizes.InputSize.Width != inputBuffer.Width ||
+                    sizes.InputSize.Height != inputBuffer.Height);
         }
 
-        private void CreateNewInputBuffer(DownscalingMessages.SetDownscalingSizesMessage message)
+        private void CreateNewInputBuffer(DownscalingSizes sizes)
         {
             inputBuffer?.Dispose();
 #pragma warning disable CS0618
-            inputBuffer = new ComputeImage2D(clContext, ComputeMemoryFlags.ReadWrite, GetBufferFormat(message.Format),
-                message.InputSize.Width, message.InputSize.Height, 0, IntPtr.Zero);
+            inputBuffer = new ComputeImage2D(clContext, ComputeMemoryFlags.ReadWrite, GetBufferFormat(sizes.Format),
+                sizes.InputSize.Width, sizes.InputSize.Height, 0, IntPtr.Zero);
 #pragma warning restore CS0618
             ClearBuffer(inputBuffer);
         }
 
-        private void CreateNewOutputBuffer(DownscalingMessages.SetDownscalingSizesMessage message)
+        private void CreateNewOutputBuffer(DownscalingSizes sizes)
         {
             outputBuffer?.Dispose();
 #pragma warning disable CS0618
-            outputBuffer = new ComputeImage2D(clContext, ComputeMemoryFlags.WriteOnly, GetBufferFormat(message.Format),
-                message.FinalOutputSize.Width, message.FinalOutputSize.Height, 0, IntPtr.Zero);
+            outputBuffer = new ComputeImage2D(clContext, ComputeMemoryFlags.WriteOnly, GetBufferFormat(sizes.Format),
+                sizes.FinalOutputSize.Width, sizes.FinalOutputSize.Height, 0, IntPtr.Zero);
 #pragma warning restore CS0618
             ClearBuffer(outputBuffer);
         }
@@ -289,6 +302,25 @@ namespace ActorPipeline.Actors.Downscaling
                 default:
                     throw new NotSupportedException("Unsupported image format");
             }
+        }
+
+        private static FractionalImageRegion CalculateInputRegion(DownscalingMessages.SetDownscalingSettingsMessage message)
+        {
+            var mustSeeRegion = message.ZoomedArea.ToFractionalPixels(message.InputSize);
+            double scale = Math.Min(message.DisplaySize.Width / mustSeeRegion.Width, message.DisplaySize.Height / mustSeeRegion.Height);
+            ImageSize idealSize = new ImageSize((int)(message.DisplaySize.Width / scale + 0.5), (int)(message.DisplaySize.Height / scale + 0.5));
+            return mustSeeRegion.ExpandSafelyTo(idealSize, message.InputSize);
+        }
+
+        private static ImageSize CalculateOutputSize(DownscalingMessages.SetDownscalingSettingsMessage message)
+        {
+            FractionalImageSize inputRegionSize = CalculateInputRegion(message).Size;
+            double scale = Math.Min((double)message.DisplaySize.Width / inputRegionSize.Width, (double)message.DisplaySize.Height / inputRegionSize.Height);
+            if (scale > 1.0)
+            {
+                scale = 1.0;
+            }
+            return new ImageSize((int)(scale * inputRegionSize.Width + 0.5), (int)(scale * inputRegionSize.Height + 0.5));
         }
 
         private static string GetProgramCode()
