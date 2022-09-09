@@ -26,13 +26,15 @@ namespace ActorPipeline.Actors.Downscaling
 
         public sealed class SetDownscalingSizesMessage
         {
+            public long Id { get; }
             public ImageSize InputSize { get; }
             public FractionalImageRegion FinalInputRegion { get; }
             public ImageSize FinalOutputSize { get; }
             public ImageFormat Format { get; }
 
-            public SetDownscalingSizesMessage(ImageSize inputSize, FractionalImageRegion finalInputRegion, ImageSize finalOutputSize, ImageFormat format)
+            public SetDownscalingSizesMessage(long id, ImageSize inputSize, FractionalImageRegion finalInputRegion, ImageSize finalOutputSize, ImageFormat format)
             {
+                Id = id;
                 InputSize = inputSize;
                 FinalInputRegion = finalInputRegion;
                 FinalOutputSize = finalOutputSize;
@@ -40,21 +42,23 @@ namespace ActorPipeline.Actors.Downscaling
             }
 
             public override string ToString() =>
-                $"Downscaling_SetDownscalingSizes(inputSize: {InputSize}, finalInputRegion: {FinalInputRegion}, finalOutputSize:{FinalOutputSize}, format: {Format})";
+                $"Downscaling_SetDownscalingSizes(id: {Id}, inputSize: {InputSize}, finalInputRegion: {FinalInputRegion}, finalOutputSize:{FinalOutputSize}, format: {Format})";
         }
 
         public sealed class OutputUpdatedMessage
         {
+            public long OutputFormatId { get; }
             public ImageRegion Changed { get; }
             public byte[] Data { get; }
 
-            public OutputUpdatedMessage(ImageRegion changed, byte[] data)
+            public OutputUpdatedMessage(long outputFormatId, ImageRegion changed, byte[] data)
             {
+                OutputFormatId = outputFormatId;
                 Changed = changed;
                 Data = data;
             }
 
-            public override string ToString() => $"Downscaling_OutputUpdated({Changed}, byte[{Data.Length}])";
+            public override string ToString() => $"Downscaling_OutputUpdated({OutputFormatId}, {Changed}, byte[{Data.Length}])";
         }
 
     }

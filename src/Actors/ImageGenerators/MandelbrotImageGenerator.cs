@@ -37,12 +37,12 @@ namespace ActorPipeline.Actors.ImageGenerators
 
         public ImagePosition Position => new ImagePosition(x, y);
         public int Frame => frame;
-        public void Reset(double noiseLevel)
+        public void Reset(double newNoiseLevel)
         {
             x = 0;
             y = 0;
             frame = 0;
-            this.noiseLevel = noiseLevel;
+            noiseLevel = newNoiseLevel;
             ResetPixelWriter();
         }
 
@@ -123,7 +123,7 @@ namespace ActorPipeline.Actors.ImageGenerators
             void NextPixel(sbyte noise);
         }
 
-        private abstract class PixelWriterBase<T> : IPixelWriter where T : struct
+        private abstract class PixelWriterBase : IPixelWriter
         {
             protected readonly IImageLineReadAccess sourceAccess;
             protected readonly IImageLineWriteAccess targetAccess;
@@ -144,7 +144,7 @@ namespace ActorPipeline.Actors.ImageGenerators
             public abstract void NextPixel(sbyte noise);
         }
 
-        private unsafe class PixelWriter8Bit : PixelWriterBase<byte>
+        private unsafe class PixelWriter8Bit : PixelWriterBase
         {
             private byte* srcPtr;
             private byte* dstPtr;
@@ -163,7 +163,7 @@ namespace ActorPipeline.Actors.ImageGenerators
             }
         }
 
-        private unsafe class PixelWriter16Bit : PixelWriterBase<ushort>
+        private unsafe class PixelWriter16Bit : PixelWriterBase
         {
             private ushort* srcPtr;
             private ushort* dstPtr;
@@ -182,7 +182,7 @@ namespace ActorPipeline.Actors.ImageGenerators
             }
         }
 
-        private unsafe class PixelWriter24Bit : PixelWriterBase<BgraType>
+        private unsafe class PixelWriter24Bit : PixelWriterBase
         {
             private BgraType* srcPtr;
             private BgraType* dstPtr;
@@ -238,7 +238,8 @@ namespace ActorPipeline.Actors.ImageGenerators
 
             public void WriteRowPixels()
             {
-                Complex c = new Complex(-2.0, -1.0 + writeAccess.Row * (2.0 / height));
+                double complexHeight = 3.0 * height / width;
+                Complex c = new Complex(-2.0, -(complexHeight/2) + writeAccess.Row * (complexHeight / height));
                 double rStep = 3.0 / width;
                 for (int x = 0; x < width; x++)
                 {
@@ -338,33 +339,25 @@ namespace ActorPipeline.Actors.ImageGenerators
 
             private static BgraType HSLtoRGB(double H, double S, double L)
             {
-                double v;
-                double r, g, b;
-
-                r = L;   // Set RGB all equal to L, defaulting to grey.
-                g = L;
-                b = L;
+                double r = L; // Set RGB all equal to L, defaulting to grey.
+                double g = L;
+                double b = L;
 
                 // Standard HSL to RGB conversion. This is described in
                 // detail at:
                 // http://www.niwa.nu/2013/05/math-behind-colorspace-conversions-rgb-hsl/
-                v = (L <= 0.5) ? (L * (1.0 + S)) : (L + S - L * S);
+                double v = (L <= 0.5) ? (L * (1.0 + S)) : (L + S - L * S);
 
                 if (v > 0)
                 {
-                    double m;
-                    double sv;
-                    int sextant;
-                    double fract, vsf, mid1, mid2;
-
-                    m = L + L - v;
-                    sv = (v - m) / v;
+                    double m = L + L - v;
+                    double sv = (v - m) / v;
                     H *= 6.0;
-                    sextant = (int)H;
-                    fract = H - sextant;
-                    vsf = v * sv * fract;
-                    mid1 = m + vsf;
-                    mid2 = v - vsf;
+                    double sextant = (int)H;
+                    double fract = H - sextant;
+                    double vsf = v * sv * fract;
+                    double mid1 = m + vsf;
+                    double mid2 = v - vsf;
 
                     switch (sextant)
                     {

@@ -23,6 +23,7 @@ namespace ActorPipeline.Actors.Downscaling
         private ComputeImage2D outputBuffer;
         private ImageFormat currentFormat;
         private FractionalImageRegion inputRegion;
+        private long currentFormatId;
 
         public OpenClDownscalerActor(IActorRef parentDownscaler, ComputeContext clContext)
         {
@@ -75,6 +76,7 @@ namespace ActorPipeline.Actors.Downscaling
         private void HandleSizesChange(DownscalingMessages.SetDownscalingSizesMessage message)
         {
             LogMessage(message);
+
             bool needFullResize = false;
 
             if (InputBufferFormatChanged(message))
@@ -88,6 +90,7 @@ namespace ActorPipeline.Actors.Downscaling
                 needFullResize = true;
             }
 
+            currentFormatId = message.Id;
             currentFormat = message.Format;
 
             if (ZoomedRegionChanged(message))
@@ -131,7 +134,7 @@ namespace ActorPipeline.Actors.Downscaling
             events.ForEach(e => e.Dispose());
 
             parentDownscaler.Tell(
-                new DownscalingMessages.OutputUpdatedMessage(
+                new DownscalingMessages.OutputUpdatedMessage(currentFormatId,
                     new ImageRegion(0, 0, outputBuffer.Width, outputBuffer.Height), data)
                 );
         }
@@ -199,7 +202,7 @@ namespace ActorPipeline.Actors.Downscaling
             events.ForEach(e => e.Dispose());
             logger.Debug($"  OpenCL PartialResize {outputUpdatedRegion.Width*scale:F1}x{outputUpdatedRegion.Height*scale:F1} -> {outputUpdatedRegion.Width}x{outputUpdatedRegion.Height} finished in {sw.ElapsedMilliseconds} ms");
 
-            return new DownscalingMessages.OutputUpdatedMessage(outputUpdatedRegion, data);
+            return new DownscalingMessages.OutputUpdatedMessage(currentFormatId, outputUpdatedRegion, data);
         }
 
         private ComputeEventBase CopyDataToInputBuffer(PipelineFilterMessages.PartialUpdateMessage message)

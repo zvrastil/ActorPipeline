@@ -21,6 +21,7 @@ namespace ActorPipeline.Actors
         private DateTime lastTick;
         private ImagePosition lastPosition;
         private long lastFrame;
+        private long lastFormatChangeId;
 
         #region Private Messages
 
@@ -130,7 +131,7 @@ namespace ActorPipeline.Actors
         private PipelineFilterMessages.PartialUpdateMessage CreatePartialUpdate(int fromY, int height)
         {
             var rect = new ImageRegion(0, fromY, sourceImage.Width, height);
-            return new PipelineFilterMessages.PartialUpdateMessage(rect, ExtractData(sourceImage, rect));
+            return new PipelineFilterMessages.PartialUpdateMessage(lastFormatChangeId, rect, ExtractData(sourceImage, rect));
         }
 
         private static byte[] ExtractData(IImage image, ImageRegion rect)
@@ -162,7 +163,8 @@ namespace ActorPipeline.Actors
             imageGenerator = new MandelbrotImageGenerator(sourceImage, GetNoiseLevel(dwellTimeNanoseconds));
             lastTick = DateTime.Now;
             lastPosition = new ImagePosition(0, 0);
-            TellToSubscribers(new PipelineFilterMessages.FormatChangedMessage(sourceImage));
+            lastFormatChangeId = MessageIdSource.NextId();
+            TellToSubscribers(new PipelineFilterMessages.FormatChangedMessage(lastFormatChangeId, sourceImage));
         }
 
         private void HandleDwellTimeChange(PipelineControlMessages.SetDwellTimeMessage message)
@@ -179,7 +181,7 @@ namespace ActorPipeline.Actors
             base.OnSubscribed(actor);
             if (IsImageFormatSet())
             {
-                actor.Tell(new PipelineFilterMessages.FormatChangedMessage(sourceImage));
+                actor.Tell(new PipelineFilterMessages.FormatChangedMessage(lastFormatChangeId, sourceImage));
             }
         }
 

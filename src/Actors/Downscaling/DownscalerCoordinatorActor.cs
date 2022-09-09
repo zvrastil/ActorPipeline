@@ -49,7 +49,7 @@ namespace ActorPipeline.Actors.Downscaling
         {
             LogMessage(message);
 
-            var finalSizesMessage = new DownscalingMessages.SetDownscalingSizesMessage(message.InputSize,
+            var finalSizesMessage = new DownscalingMessages.SetDownscalingSizesMessage(MessageIdSource.NextId(), message.InputSize,
                 CalculateInputRegion(message), CalculateOutputSize(message), message.Format);
 
             parentDownscaler.Tell(finalSizesMessage);

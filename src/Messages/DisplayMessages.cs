@@ -32,6 +32,20 @@ namespace ActorPipeline.Messages
             public override string ToString() => $"Display_SetDigitalZoom({ZoomFactor}, {PanX}, {PanY})";
         }
 
+        public sealed class ZoomIntoMessage
+        {
+            public FractionalImagePosition ZoomCenter { get; }
+            public double Delta { get; }
+
+            public ZoomIntoMessage(FractionalImagePosition zoomCenter, double delta)
+            {
+                ZoomCenter = zoomCenter;
+                Delta = delta;
+            }
+
+            public override string ToString() => $"Display_ZoomIntoMessage({ZoomCenter}, {Delta})";
+        }
+
         public sealed class SetDisplaySettingsMessage
         {
             public FractionalImageRegion RelativeRegion { get; }

@@ -176,6 +176,7 @@
     <Compile Include="Messages\Data\FilterProperties.cs" />
     <Compile Include="Messages\Data\FilterPropertiesBuilder.cs" />
     <Compile Include="Messages\DisplayMessages.cs" />
+    <Compile Include="Messages\MessageIdSource.cs" />
     <Compile Include="Messages\PipelineControlMessages.cs" />
     <Compile Include="Messages\PipelineFilterMessages.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">

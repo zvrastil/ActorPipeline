@@ -27,7 +27,7 @@ namespace ActorPipeline.Actors
         private void HandleOutputUpdated(DownscalingMessages.OutputUpdatedMessage message)
         {
             LogMessage(message);
-            TellToSubscribers(new PipelineFilterMessages.PartialUpdateMessage(message.Changed, message.Data));
+            TellToSubscribers(new PipelineFilterMessages.PartialUpdateMessage(message.OutputFormatId, message.Changed, message.Data));
         }
 
         private void HandleFinalSizes(DownscalingMessages.SetDownscalingSizesMessage message)
@@ -40,6 +40,10 @@ namespace ActorPipeline.Actors
 
         private void HandlePartialUpdate(PipelineFilterMessages.PartialUpdateMessage message)
         {
+            if (message.FormatChangeId != inputFormat.Id)
+            {
+                return;
+            }
             LogMessage(message);
             if (!IsReadyForWork())
             {
@@ -87,7 +91,7 @@ namespace ActorPipeline.Actors
 
         private PipelineFilterMessages.FormatChangedMessage CreateOutputFormatMessage()
         {
-            return new PipelineFilterMessages.FormatChangedMessage(outputFormat.FinalOutputSize, outputFormat.Format);
+            return new PipelineFilterMessages.FormatChangedMessage(outputFormat.Id, outputFormat.FinalOutputSize, outputFormat.Format);
         }
 
         private bool IsReadyForWork()

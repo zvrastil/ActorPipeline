@@ -1,4 +1,5 @@
-﻿using ActorPipeline.Actors;
+﻿using System;
+using ActorPipeline.Actors;
 using ActorPipeline.Crates;
 using ActorPipeline.Images2;
 using ActorPipeline.Messages;
@@ -7,6 +8,7 @@ using Akka.Actor;
 using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 
 namespace ActorPipeline
 {
@@ -191,6 +193,16 @@ namespace ActorPipeline
         private void UpdateDigitalZoom()
         {
             imageDisplay?.Tell(new DisplayMessages.SetDigitalZoomMessage(ZoomFactor.Value, PanX.Value, PanY.Value));
+        }
+
+        private void Image_OnMouseWheel(object sender, MouseWheelEventArgs e)
+        {
+            var position = e.GetPosition(Image);
+            var relativePosition = new FractionalImagePosition(
+                position.X / Image.ActualWidth, 
+                position.Y / Image.ActualHeight
+                );
+            imageDisplay?.Tell(new DisplayMessages.ZoomIntoMessage(relativePosition, e.Delta/120.0));
         }
     }
 }

@@ -9,7 +9,12 @@ namespace ActorPipeline.Actors
 
         protected void LogMessage<T>(T message)
         {
-            logger.Info("{Actor}.{Message}", Self.Path.Name, message.ToString());
+            logger.Debug("{Actor}.{Message}", Self.Path.Name, message.ToString());
+        }
+
+        protected override SupervisorStrategy SupervisorStrategy()
+        {
+            return new AllForOneStrategy(_ => Directive.Escalate);
         }
     }
 }

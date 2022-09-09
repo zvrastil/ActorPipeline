@@ -41,35 +41,37 @@ namespace ActorPipeline.Messages
 
         public sealed class FormatChangedMessage
         {
-            public FormatChangedMessage(ImageSize size, ImageFormat format)
+            public FormatChangedMessage(long id, ImageSize size, ImageFormat format)
             {
+                Id = id;
                 Size = size;
                 Format = format;
             }
 
-            public FormatChangedMessage(IImage image)
+            public FormatChangedMessage(long id, IImage image) : this(id, image.Size, image.Format)
             {
-                Size = image.Size;
-                Format = image.Format;
             }
 
+            public long Id { get; }
             public ImageSize Size { get; }
             public ImageFormat Format { get; }
-            public override string ToString() => $"PipelineFilter_FormatChanged({Size}, {Format})";
+            public override string ToString() => $"PipelineFilter_FormatChanged({Id}, {Size}, {Format})";
         }
 
         public sealed class PartialUpdateMessage
         {
-            public PartialUpdateMessage(ImageRegion changed, byte[] data)
+            public PartialUpdateMessage(long formatChangeId, ImageRegion changed, byte[] data)
             {
+                FormatChangeId = formatChangeId;
                 Changed = changed;
                 Data = data;
             }
 
+            public long FormatChangeId { get; }
             public ImageRegion Changed { get; }
             public byte[] Data { get; }
 
-            public override string ToString() => $"PipelineFilter_PartialUpdate({Changed}, byte[{Data.Length}])";
+            public override string ToString() => $"PipelineFilter_PartialUpdate({FormatChangeId}, {Changed}, byte[{Data.Length}])";
         }
                    
     }

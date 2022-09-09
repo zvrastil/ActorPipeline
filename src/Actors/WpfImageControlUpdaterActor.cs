@@ -14,6 +14,8 @@ namespace ActorPipeline.Actors
         private readonly Image imageControl;
         private WriteableBitmap bitmap;
         private int bytesPerPixel;
+        private long currentFormatId;
+        private long appliedFormatId;
 
         public WpfImageControlUpdaterActor(Image imageControl) : base(FilterFlags.TargetFilter)
         {
@@ -30,10 +32,9 @@ namespace ActorPipeline.Actors
             bitmap = new WriteableBitmap(message.Size.Width, message.Size.Height, 96.0, 96.0, format, null);    
             this.bytesPerPixel = bytesPerPixel;
             ClearBitmap(bitmap);
-            imageControl.BeginInit();
-            imageControl.Source = bitmap;
-            imageControl.EndInit();
-
+            currentFormatId = message.Id;
+            // do not set the source immediately - postpone it to the first update to prevent
+            // display from going black
         }
 
         private static void ClearBitmap(WriteableBitmap bitmap)
@@ -53,6 +54,10 @@ namespace ActorPipeline.Actors
 
         private void HandleImageUpdate(PipelineFilterMessages.PartialUpdateMessage message)
         {
+            if (message.FormatChangeId != currentFormatId)
+            {
+                return;
+            }
             LogMessage(message);
             if (bitmap == null)
             {
@@ -71,6 +76,12 @@ namespace ActorPipeline.Actors
             finally
             {
                 bitmap.Unlock();
+            }
+
+            if (appliedFormatId != currentFormatId)
+            {
+                imageControl.Source = bitmap;
+                appliedFormatId = currentFormatId;
             }
         }        
 
