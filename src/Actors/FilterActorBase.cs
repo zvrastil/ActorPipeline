@@ -2,8 +2,6 @@
 using Akka.Actor;
 using System;
 using System.Collections.Generic;
-using Akka.Event;
-using System.Diagnostics;
 
 namespace ActorPipeline.Actors
 {
@@ -30,6 +28,7 @@ namespace ActorPipeline.Actors
             if (filterFlags.HasFlag(FilterFlags.SourceFilter))
             {
                 Receive<PipelineFilterMessages.SubscribeMessage>(HandleSubscribe);
+                Receive<PipelineFilterMessages.UnsubscribeMessage>(HandleUnsubscribe);
             }
             if (filterFlags.HasFlag(FilterFlags.TargetFilter))
             {
@@ -53,11 +52,25 @@ namespace ActorPipeline.Actors
         {
         }
 
+        protected virtual void OnUnsubscribed(IActorRef actor)
+        {
+        }
+
         private void HandleSubscribe(PipelineFilterMessages.SubscribeMessage message)
         {
             LogMessage(message);
             subscribers.Add(message.Subscriber);
             OnSubscribed(message.Subscriber);   
+        }
+
+        private void HandleUnsubscribe(PipelineFilterMessages.UnsubscribeMessage message)
+        {
+            LogMessage(message);
+            if (subscribers.Contains(message.Subscriber))
+            {
+                subscribers.Remove(message.Subscriber);
+            }
+            OnUnsubscribed(message.Subscriber);
         }
 
         private void HandleConnectTo(PipelineFilterMessages.ConnectToMessage message)

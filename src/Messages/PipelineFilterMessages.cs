@@ -39,6 +39,18 @@ namespace ActorPipeline.Messages
             public override string ToString() => $"PipelineFilter_Subscribe({Subscriber.Path.Name})";
         }
 
+        public sealed class UnsubscribeMessage
+        {
+            public UnsubscribeMessage(IActorRef subscriber)
+            {
+                Subscriber = subscriber;
+            }
+
+            public IActorRef Subscriber { get; }
+
+            public override string ToString() => $"PipelineFilter_Unsubscribe({Subscriber.Path.Name})";
+        }
+
         public sealed class FormatChangedMessage
         {
             public FormatChangedMessage(long id, ImageSize size, ImageFormat format)

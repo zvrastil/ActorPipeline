@@ -1,23 +1,60 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 using ActorPipeline.Images2;
 using ActorPipeline.Messages;
 using Akka.Actor;
 
 namespace ActorPipeline.Actors
 {
-    public sealed class ImageDisplayActor : ProcessingFilterActorBase
+    public sealed class ImageDisplayPipelineActor : LoggingActor
     {
+        private readonly List<IActorRef> filters = new List<IActorRef>();
         private readonly IActorRef imageDownscalerActor;
+        private readonly IActorRef renderingActor;
         private DisplayMessages.SetDisplaySizeMessage displaySize;
         private DisplayMessages.SetDigitalZoomMessage digitalZoom;
 
-        public ImageDisplayActor(IActorRef imageDownscalerActor) : base()
+        public ImageDisplayPipelineActor(IActorRef imageDownscalerActor, IActorRef renderingActor) : base()
         {
             this.imageDownscalerActor = imageDownscalerActor;
-            BaseMessages();
+            this.renderingActor = renderingActor;
+            Receive<DisplayMessages.AddFilterMessage>(HandleAddFilter);
+            Receive<PipelineFilterMessages.FormatChangedMessage>(ForwardToHead);
+            Receive<PipelineFilterMessages.PartialUpdateMessage>(ForwardToHead);
+
             Receive<DisplayMessages.SetDisplaySizeMessage>(HandleDisplaySize);
             Receive<DisplayMessages.SetDigitalZoomMessage>(HandleDigitalZoom);
             Receive<DisplayMessages.ZoomIntoMessage>(HandleZoomInto);
+            imageDownscalerActor.Tell(new PipelineFilterMessages.SubscribeMessage(Self));
+        }
+
+        private void HandleAddFilter(DisplayMessages.AddFilterMessage message)
+        {
+            LogMessage(message);
+
+            var newFilter = Context.ActorOf(message.Props, message.FilterName);
+            if (filters.Any())
+            {                
+                filters.Last().Tell(new PipelineFilterMessages.UnsubscribeMessage(renderingActor));
+                newFilter.Tell(new PipelineFilterMessages.ConnectToMessage(filters.Last()));
+            }
+            newFilter.Tell(new PipelineFilterMessages.SubscribeMessage(renderingActor));
+            filters.Add(newFilter);           
+            Sender.Tell(newFilter);
+        }        
+
+        private void ForwardToHead<T>(T message)
+        {
+            LogMessage(message);
+            if (filters.Any())
+            {
+                filters.First().Tell(message);
+            }
+            else
+            {
+                renderingActor.Tell(message);
+            }
         }
 
         private void HandleZoomInto(DisplayMessages.ZoomIntoMessage message)

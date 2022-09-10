@@ -1,9 +1,25 @@
 ﻿using ActorPipeline.Images2;
+using Akka.Actor;
 
 namespace ActorPipeline.Messages
 {
     public static class DisplayMessages
     {
+        public sealed class AddFilterMessage
+        {
+            public AddFilterMessage(Props props, string filterName)
+            {
+                Props = props;
+                FilterName = filterName;
+            }
+
+            public Props Props { get; }
+            public string FilterName { get; }
+
+            public override string ToString() =>
+                $"Display_AddFilterMessage({FilterName})";
+        }
+
         public sealed class SetDisplaySizeMessage
         {
             public ImageSize DisplaySize { get; }

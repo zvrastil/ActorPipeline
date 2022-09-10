@@ -2,14 +2,16 @@
 using ActorPipeline.Actors.Downscaling;
 using ActorPipeline.Messages;
 using Akka.Actor;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ActorPipeline.Actors
 {
     public sealed class ImageDownscalerActor : FilterActorBase
     {
         private PipelineFilterMessages.FormatChangedMessage inputFormat;
-        private DisplayMessages.SetDisplaySettingsMessage outputSettings;
-        private DownscalingSizes outputFormat;
+        private Dictionary<IActorRef, DisplayMessages.SetDisplaySettingsMessage> outputSettings = new Dictionary<IActorRef, DisplayMessages.SetDisplaySettingsMessage>();
+        private Dictionary<IActorRef, DownscalingSizes> outputFormats = new Dictionary<IActorRef, DownscalingSizes>();
         private readonly IActorRef downscaler;
 
         public ImageDownscalerActor() : base(FilterFlags.ProcessingFilter)
@@ -26,14 +28,14 @@ namespace ActorPipeline.Actors
         private void HandleOutputUpdated(DownscalingMessages.OutputUpdatedMessage message)
         {
             LogMessage(message);
-            TellToSubscribers(new PipelineFilterMessages.PartialUpdateMessage(message.OutputFormatId, message.Changed, message.Data));
+            message.ForActor.Tell(new PipelineFilterMessages.PartialUpdateMessage(message.OutputFormatId, message.Changed, message.Data));
         }
 
         private void HandleFinalSizes(DownscalingMessages.SetDownscalingSizesMessage message)
         {
             LogMessage(message);
-            outputFormat = message.Sizes;
-            TellToSubscribers(CreateOutputFormatMessage());
+            outputFormats[message.ForActor] = message.Sizes;
+            message.ForActor.Tell(CreateOutputFormatMessage(outputFormats[message.ForActor]));
         }
 
 
@@ -55,47 +57,51 @@ namespace ActorPipeline.Actors
         {
             LogMessage(message);
             inputFormat = message;
-            UpdateDownscalerSettings();
+            UpdateDownscalerSettings(outputSettings.Keys.ToArray());
         }
 
         private void HandleDisplaySettings(DisplayMessages.SetDisplaySettingsMessage message)
         {
             LogMessage(message);
-            outputSettings = message;
-            UpdateDownscalerSettings();
+            outputSettings[Sender] = message;
+            UpdateDownscalerSettings(Sender);
         }
 
         protected override void OnSubscribed(IActorRef actor)
         {
             base.OnSubscribed(actor);
-            if (outputFormat != null)
-            {
-                actor.Tell(CreateOutputFormatMessage());
-            }
+            outputSettings[Sender] = null;
         }
 
-        private void UpdateDownscalerSettings()
+        private void UpdateDownscalerSettings(params IActorRef[] clients)
         {
             if (!IsReadyForWork())
             {
                 return;
             }
 
-            downscaler.Tell(new DownscalingMessages.SetDownscalingSettingsMessage(
-                inputFormat.Size,
-                outputSettings.DisplaySize, 
-                inputFormat.Format,
-                outputSettings.RelativeRegion));
+            foreach (var client in clients)
+            {
+                if (outputSettings[client] != null)
+                {
+                    downscaler.Tell(new DownscalingMessages.SetDownscalingSettingsMessage(
+                        client,
+                        inputFormat.Size,
+                        outputSettings[client].DisplaySize,
+                        inputFormat.Format,
+                        outputSettings[client].RelativeRegion));
+                }
+            }
         }
 
-        private PipelineFilterMessages.FormatChangedMessage CreateOutputFormatMessage()
+        private PipelineFilterMessages.FormatChangedMessage CreateOutputFormatMessage(DownscalingSizes outputFormat)
         {
             return new PipelineFilterMessages.FormatChangedMessage(outputFormat.Id, outputFormat.FinalOutputSize, outputFormat.Format);
         }
 
         private bool IsReadyForWork()
         {
-            return inputFormat != null && outputSettings != null;
+            return inputFormat != null && outputSettings.Values.Any(settings => settings != null);
         }
     }
 }

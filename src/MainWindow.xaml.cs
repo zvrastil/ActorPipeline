@@ -20,8 +20,10 @@ namespace ActorPipeline
         private IActorRef pipeline;
         private IActorRef imageSource;
         private IActorRef imageDownscaler;
-        private IActorRef imageDisplay;
-        private IActorRef bitmapUpdater;
+        private IActorRef imageDisplayPrimary;
+        private IActorRef bitmapUpdaterPrimary;
+        private IActorRef imageDisplayZoom;
+        private IActorRef bitmapUpdaterZoom;
         private bool isRunning = false;
 
         private static readonly IReadOnlyList<ImageFormatCrate> ImageFormats = new List<ImageFormatCrate> 
@@ -68,8 +70,9 @@ namespace ActorPipeline
             SetUpDwellTimeComboBox();
             SetUpFormatComboBox();
             ImageBorder.SizeChanged += Image_SizeChanged;
+            ZoomImageBorder.SizeChanged += ZoomImageBorder_SizeChanged;
             Loaded += MainWindow_Loaded;
-        }
+        }        
 
         private void SetUpResolutionComboBox()
         {
@@ -111,26 +114,39 @@ namespace ActorPipeline
                     FilterPropertiesBuilder.WithName("imageDownscaler").Build()
                     )
                 );
-            imageDisplay = await pipeline.Ask<IActorRef>(
-                new PipelineControlMessages.CreateFilterMessage(
-                    Props.Create(() => new ImageDisplayActor(imageDownscaler)), 
-                    FilterPropertiesBuilder.WithName("imageDisplay").Build()
-                    )
-                );
-            bitmapUpdater = ActorGlobals.ActorSystem.ActorOf(
-                Props.Create(() => new WpfImageControlUpdaterActor(Image)).WithDispatcher("akka.actor.synchronized-dispatcher"),
-                "bitmapUpdater"
-                );
-
 
             imageDownscaler.Tell(new PipelineFilterMessages.ConnectToMessage(imageSource));
-            imageDisplay.Tell(new PipelineFilterMessages.ConnectToMessage(imageDownscaler));
-            bitmapUpdater.Tell(new PipelineFilterMessages.ConnectToMessage(imageDisplay));
 
+            bitmapUpdaterPrimary = ActorGlobals.ActorSystem.ActorOf(
+                Props.Create(() => new WpfImageControlUpdaterActor(Image)).WithDispatcher("akka.actor.synchronized-dispatcher"),
+                "bitmapUpdaterPrimary"
+                );
+
+            imageDisplayPrimary = await pipeline.Ask<IActorRef>(
+                new PipelineControlMessages.CreateFilterMessage(
+                    Props.Create(() => new ImageDisplayPipelineActor(imageDownscaler, bitmapUpdaterPrimary)), 
+                    FilterPropertiesBuilder.WithName("imageDisplayPrimary").Build()
+                    )
+                );
+
+            bitmapUpdaterZoom = ActorGlobals.ActorSystem.ActorOf(
+                Props.Create(() => new WpfImageControlUpdaterActor(ZoomImage)).WithDispatcher("akka.actor.synchronized-dispatcher"),
+                "bitmapUpdaterZoom"
+                );
+
+            imageDisplayZoom = await pipeline.Ask<IActorRef>(
+                new PipelineControlMessages.CreateFilterMessage(
+                    Props.Create(() => new ImageDisplayPipelineActor(imageDownscaler, bitmapUpdaterZoom)),
+                    FilterPropertiesBuilder.WithName("imageDisplayZoom").Build()
+                    )
+                );
+           
             UpdateImageFormat();
             UpdateDwellTime();
-            UpdateDisplaySize();
-            UpdateDigitalZoom();
+            UpdatePrimaryDisplaySize();
+            UpdateZoomDisplaySize();
+            imageDisplayPrimary.Tell(new DisplayMessages.SetDigitalZoomMessage(1.0, 0.5, 0.5));
+            imageDisplayZoom.Tell(new DisplayMessages.SetDigitalZoomMessage(1.0, 0.5, 0.5));
         }
 
         private void StartStop_Click(object sender, RoutedEventArgs e)
@@ -159,14 +175,14 @@ namespace ActorPipeline
             UpdateDwellTime();
         }
 
-        private void DigitalZoom_OnValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            UpdateDigitalZoom();
-        }
-
         private void Image_SizeChanged(object sender, SizeChangedEventArgs e)
         {
-            UpdateDisplaySize();
+            UpdatePrimaryDisplaySize();
+        }
+
+        private void ZoomImageBorder_SizeChanged(object sender, SizeChangedEventArgs e)
+        {
+            UpdateZoomDisplaySize();
         }
 
         private void UpdateImageFormat()
@@ -181,18 +197,22 @@ namespace ActorPipeline
             pipeline?.Tell(new PipelineControlMessages.SetDwellTimeMessage((long) DwellTime.SelectedValue));
         }
 
-        private void UpdateDisplaySize()
+        private void UpdatePrimaryDisplaySize()
         {
             if (ImageBorder.ActualWidth > 0 && ImageBorder.ActualHeight > 0)
             {
-                imageDisplay?.Tell(
+                imageDisplayPrimary?.Tell(
                     new DisplayMessages.SetDisplaySizeMessage(new ImageSize((int)ImageBorder.ActualWidth, (int)ImageBorder.ActualHeight)));
             }
         }
 
-        private void UpdateDigitalZoom()
+        private void UpdateZoomDisplaySize()
         {
-            imageDisplay?.Tell(new DisplayMessages.SetDigitalZoomMessage(ZoomFactor.Value, PanX.Value, PanY.Value));
+            if (ZoomImageBorder.ActualWidth > 0 && ZoomImageBorder.ActualHeight > 0)
+            {
+                imageDisplayZoom?.Tell(
+                    new DisplayMessages.SetDisplaySizeMessage(new ImageSize((int)ZoomImageBorder.ActualWidth, (int)ZoomImageBorder.ActualHeight)));
+            }
         }
 
         private void Image_OnMouseWheel(object sender, MouseWheelEventArgs e)
@@ -202,7 +222,7 @@ namespace ActorPipeline
                 position.X / Image.ActualWidth, 
                 position.Y / Image.ActualHeight
                 );
-            imageDisplay?.Tell(new DisplayMessages.ZoomIntoMessage(relativePosition, e.Delta/120.0));
+            imageDisplayPrimary?.Tell(new DisplayMessages.ZoomIntoMessage(relativePosition, e.Delta/120.0));
         }
     }
 }

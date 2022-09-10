@@ -7,9 +7,9 @@ namespace ActorPipeline.Actors
     {
         protected readonly ILoggingAdapter logger = Context.GetLogger();
 
-        protected void LogMessage<T>(T message)
+        protected void LogMessage<T>(T message, string additionalInfo = null)
         {
-            logger.Debug("{Actor}.{Message}", Self.Path.Name, message.ToString());
+            logger.Debug("{Actor}.{Message}"+(additionalInfo == null ? "" : " "+additionalInfo), Self.Path.Name, message.ToString());
         }
 
         protected override SupervisorStrategy SupervisorStrategy()

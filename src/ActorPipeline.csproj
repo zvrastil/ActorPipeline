@@ -130,7 +130,10 @@
     <Compile Include="Actors\Downscaling\DownscalingMessages.cs" />
     <Compile Include="Actors\Downscaling\DownscalingSizes.cs" />
     <Compile Include="Actors\Downscaling\OpenClDownscalerActor.cs" />
-    <Compile Include="Actors\ImageDisplayActor.cs" />
+    <Compile Include="Actors\Downscaling\OpenClRunner.cs" />
+    <Compile Include="Actors\Downscaling\OutputHandlingActor.cs" />
+    <Compile Include="Actors\Downscaling\PendingWork.cs" />
+    <Compile Include="Actors\ImageDisplayPipelineActor.cs" />
     <Compile Include="Actors\ImageDownscalerActor.cs" />
     <Compile Include="Actors\ImageGenerators\BaseImageGenerator.cs" />
     <Compile Include="Actors\ImageGenerators\FakeImageGenerator.cs" />
