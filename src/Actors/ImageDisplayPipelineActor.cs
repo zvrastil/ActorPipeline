@@ -26,9 +26,10 @@ namespace ActorPipeline.Actors
             Receive<DisplayMessages.SetDisplaySizeMessage>(HandleDisplaySize);
             Receive<DisplayMessages.SetDigitalZoomMessage>(HandleDigitalZoom);
             Receive<DisplayMessages.ZoomIntoMessage>(HandleZoomInto);
+            Receive<DisplayMessages.GetZoomedRegionMessage>(HandleGetZoomedRegion);
+            renderingActor.Tell(new DisplayMessages.SetImageDisplayPipelineMessage(Self));
             imageDownscalerActor.Tell(new PipelineFilterMessages.SubscribeMessage(Self));
-        }
-
+        }        
         private void HandleAddFilter(DisplayMessages.AddFilterMessage message)
         {
             LogMessage(message);
@@ -95,6 +96,15 @@ namespace ActorPipeline.Actors
             LogMessage(message);
             displaySize = message;
             TellDownscalerIfReady();
+        }
+
+        private void HandleGetZoomedRegion(DisplayMessages.GetZoomedRegionMessage message)
+        {
+            LogMessage(message);
+            DisplayMessages.SetDigitalZoomMessage currentZoom =
+                digitalZoom ?? new DisplayMessages.SetDigitalZoomMessage(1, 0.5, 0.5);
+            var region = FractionalImageRegion.WholeImage().ZoomIn(currentZoom.ZoomFactor).PanSafe(currentZoom.PanX, currentZoom.PanY);
+            Sender.Tell(region);
         }
 
         private void TellDownscalerIfReady()

@@ -3,7 +3,7 @@ using Akka.Actor;
 
 namespace ActorPipeline.Messages
 {
-    public static class DisplayMessages
+    public class DisplayMessages
     {
         public sealed class AddFilterMessage
         {
@@ -18,6 +18,18 @@ namespace ActorPipeline.Messages
 
             public override string ToString() =>
                 $"Display_AddFilterMessage({FilterName})";
+        }
+
+        public sealed class SetImageDisplayPipelineMessage
+        {
+            public SetImageDisplayPipelineMessage(IActorRef pipeline)
+            {
+                Pipeline = pipeline;
+            }
+
+            public IActorRef Pipeline { get; }
+
+            public override string ToString() => $"Display_SetImageDisplayPipeline({Pipeline.Path.Name})";
         }
 
         public sealed class SetDisplaySizeMessage
@@ -75,6 +87,11 @@ namespace ActorPipeline.Messages
 
             public override string ToString() => $"Display_SetDisplaySettings({RelativeRegion}, {DisplaySize})";
 
+        }
+
+        public sealed class GetZoomedRegionMessage
+        {
+            public override string ToString() => "Display_GetZoomedRegionMessage";
         }
     }
 }
