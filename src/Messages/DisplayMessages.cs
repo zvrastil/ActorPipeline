@@ -71,7 +71,21 @@ namespace ActorPipeline.Messages
                 Delta = delta;
             }
 
-            public override string ToString() => $"Display_ZoomIntoMessage({ZoomCenter}, {Delta})";
+            public override string ToString() => $"Display_ZoomInto({ZoomCenter}, {Delta})";
+        }
+
+        public sealed class PanByMessage
+        {
+            public PanByMessage(double deltaX, double deltaY)
+            {
+                DeltaX = deltaX;
+                DeltaY = deltaY;
+            }
+
+            public double DeltaX { get; }
+            public double DeltaY { get; }
+
+            public override string ToString() => $"Display_PanBy({DeltaX}, {DeltaY})";
         }
 
         public sealed class SetDisplaySettingsMessage

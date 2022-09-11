@@ -108,10 +108,11 @@ namespace ActorPipeline.Images2
         {
             double newWidth = Math.Min(idealSize.Width, fullImageSize.Width);
             double newHeight = Math.Min(idealSize.Height, fullImageSize.Height);
-            double newLeft = Math.Max(0, Center.X - newWidth / 2);
-            double newTop = Math.Max(0, Center.Y - newHeight / 2);
-            return new FractionalImageRegion(newLeft, newTop, newWidth, newHeight);
-        }
+            double newLeft = Math.Max(0, Math.Min(Center.X - newWidth / 2, fullImageSize.Width-newWidth));
+            double newTop = Math.Max(0, Math.Min(Center.Y - newHeight / 2, fullImageSize.Height-newHeight));
+            var result = new FractionalImageRegion(newLeft, newTop, newWidth, newHeight);
+            return result;
+        }        
 
         public override string ToString() => $"[{Left}, {Top}, {Right}, {Bottom}] {Width}x{Height}";
 

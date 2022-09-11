@@ -26,10 +26,12 @@ namespace ActorPipeline.Actors
             Receive<DisplayMessages.SetDisplaySizeMessage>(HandleDisplaySize);
             Receive<DisplayMessages.SetDigitalZoomMessage>(HandleDigitalZoom);
             Receive<DisplayMessages.ZoomIntoMessage>(HandleZoomInto);
+            Receive<DisplayMessages.PanByMessage>(HandlePanBy);
             Receive<DisplayMessages.GetZoomedRegionMessage>(HandleGetZoomedRegion);
             renderingActor.Tell(new DisplayMessages.SetImageDisplayPipelineMessage(Self));
             imageDownscalerActor.Tell(new PipelineFilterMessages.SubscribeMessage(Self));
         }        
+
         private void HandleAddFilter(DisplayMessages.AddFilterMessage message)
         {
             LogMessage(message);
@@ -75,6 +77,7 @@ namespace ActorPipeline.Actors
             double dx = (currentZoom.PanX - targetCenter.X) * (currentZoom.ZoomFactor / targetZoom);
             double dy = (currentZoom.PanY - targetCenter.Y) * (currentZoom.ZoomFactor / targetZoom);
             targetCenter = new FractionalImagePosition(targetCenter.X + dx, targetCenter.Y + dy);
+            targetCenter = LimitPanToZoomFactor(targetZoom, targetCenter);
 
             var targetRegion = FractionalImageRegion.WholeImage().ZoomIn(targetZoom).PanSafe(targetCenter.X, targetCenter.Y);
             if (targetRegion != region)
@@ -82,7 +85,27 @@ namespace ActorPipeline.Actors
                 digitalZoom = new DisplayMessages.SetDigitalZoomMessage(targetZoom, targetCenter.X, targetCenter.Y);
                 TellDownscalerIfReady();
             }
-        }
+        }        
+
+        private void HandlePanBy(DisplayMessages.PanByMessage message)
+        {
+            LogMessage(message);
+            DisplayMessages.SetDigitalZoomMessage currentZoom =
+                digitalZoom ?? new DisplayMessages.SetDigitalZoomMessage(1, 0.5, 0.5);
+
+            var region = FractionalImageRegion.WholeImage().ZoomIn(currentZoom.ZoomFactor).PanSafe(currentZoom.PanX, currentZoom.PanY);
+
+            var newPan = LimitPanToZoomFactor(currentZoom.ZoomFactor, new FractionalImagePosition(
+                currentZoom.PanX + message.DeltaX / currentZoom.ZoomFactor,
+                currentZoom.PanY + message.DeltaY / currentZoom.ZoomFactor));
+
+            var targetRegion = FractionalImageRegion.WholeImage().ZoomIn(currentZoom.ZoomFactor).PanSafe(newPan.X, newPan.Y);
+            if (targetRegion != region)
+            {
+                digitalZoom = new DisplayMessages.SetDigitalZoomMessage(currentZoom.ZoomFactor, newPan.X, newPan.Y);
+                TellDownscalerIfReady();
+            }
+        }        
 
         private void HandleDigitalZoom(DisplayMessages.SetDigitalZoomMessage message)
         {
@@ -114,6 +137,17 @@ namespace ActorPipeline.Actors
                 var region = FractionalImageRegion.WholeImage().ZoomIn(digitalZoom.ZoomFactor).PanSafe(digitalZoom.PanX, digitalZoom.PanY);
                 imageDownscalerActor.Tell(new DisplayMessages.SetDisplaySettingsMessage(region, displaySize.DisplaySize));
             }
+        }
+
+        private static FractionalImagePosition LimitPanToZoomFactor(double targetZoom, FractionalImagePosition pan)
+        {
+            double zoomedWidth = 1.0 / targetZoom;
+            double minPan = zoomedWidth / 2.0;
+            double maxPan = 1.0 - zoomedWidth / 2.0;
+            return new FractionalImagePosition(
+                Math.Max(minPan, Math.Min(pan.X, maxPan)),
+                Math.Max(minPan, Math.Min(pan.Y, maxPan))
+                );
         }
     }
 }

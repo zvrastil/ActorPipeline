@@ -6,7 +6,7 @@ using System.Windows.Media;
 
 namespace ActorPipeline.Controls
 {
-    internal class DigitalZoomAdorner : Adorner
+    public class DigitalZoomAdorner : Adorner
     {
         private readonly Image adornedImage;
 
@@ -19,6 +19,29 @@ namespace ActorPipeline.Controls
         public static readonly DependencyProperty ZoomedRegionProperty =
             DependencyProperty.Register("ZoomedRegion", typeof(FractionalImageRegion), typeof(DigitalZoomAdorner), 
                 new FrameworkPropertyMetadata(FractionalImageRegion.Invalid, FrameworkPropertyMetadataOptions.AffectsRender));
+
+
+
+        public double DisplayWidth
+        {
+            get { return (double)GetValue(DisplayWidthProperty); }
+            set { SetValue(DisplayWidthProperty, value); }
+        }
+
+        public static readonly DependencyProperty DisplayWidthProperty =
+            DependencyProperty.Register("DisplayWidth", typeof(double), typeof(DigitalZoomAdorner), 
+                new FrameworkPropertyMetadata(default(double), FrameworkPropertyMetadataOptions.AffectsRender));
+
+
+        public double DisplayHeight
+        {
+            get { return (double)GetValue(DisplayHeightProperty); }
+            set { SetValue(DisplayHeightProperty, value); }
+        }
+
+        public static readonly DependencyProperty DisplayHeightProperty =
+            DependencyProperty.Register("DisplayHeight", typeof(double), typeof(DigitalZoomAdorner),
+                new FrameworkPropertyMetadata(default(double), FrameworkPropertyMetadataOptions.AffectsRender));
 
         public Brush Foreground
         {
@@ -48,15 +71,36 @@ namespace ActorPipeline.Controls
 
         protected override void OnRender(DrawingContext drawingContext)
         {
-            if (ZoomedRegion != FractionalImageRegion.Invalid && adornedImage.RenderSize.Width > 0 && adornedImage.RenderSize.Height > 0)
+            if (ZoomedRegion != FractionalImageRegion.Invalid && adornedImage.RenderSize.Width > 0 && adornedImage.RenderSize.Height > 0 &&
+                DisplayWidth > 0 && DisplayHeight > 0)
             {
                 var pen = new Pen(Foreground, Thickness);
                 pen.Freeze();
 
-                var pixelsRect = ZoomedRegion.ToFractionalPixels(new ImageSize((int)adornedImage.RenderSize.Width, (int)adornedImage.RenderSize.Height));
-                var rect = new Rect(pixelsRect.Left, pixelsRect.Top, pixelsRect.Width, pixelsRect.Height);
+
+                var pixelsRect = ZoomedRegion
+                    .ToPixels(new ImageSize((int)adornedImage.RenderSize.Width, (int)adornedImage.RenderSize.Height));
+                var rect = ExpandToAspectRatio(pixelsRect, DisplayWidth/DisplayHeight);
                 drawingContext.DrawRectangle(null, pen, rect);
             }
+        }
+
+        private static Rect ExpandToAspectRatio(ImageRegion region, double aspectRatio)
+        {
+            double currentAspectRatio = (double)region.Width / region.Height;
+            double newWidth = region.Width;
+            double newHeight = region.Height;
+            if (aspectRatio > currentAspectRatio)
+            {
+                newWidth = (aspectRatio / currentAspectRatio) * region.Width;
+            }
+            else if (aspectRatio < currentAspectRatio)
+            {
+                newHeight = (1.0 / aspectRatio) * region.Height;
+            }
+            double newLeft = region.Center.X - newWidth / 2;
+            double newTop = region.Center.Y - newHeight / 2;
+            return new Rect(newLeft, newTop, newWidth, newHeight);
         }
     }
 }

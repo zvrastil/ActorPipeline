@@ -9,6 +9,7 @@ using ActorPipeline.ViewModels;
 using System.Windows.Documents;
 using ActorPipeline.Controls;
 using System.Windows.Media;
+using System.Windows.Data;
 
 namespace ActorPipeline
 {
@@ -18,6 +19,9 @@ namespace ActorPipeline
     public partial class MainWindow : Window
     {
         private readonly MainViewModel viewModel;
+
+        private Point previousPosition;
+        private bool isDragging;
 
         public MainWindow()
         {
@@ -29,10 +33,11 @@ namespace ActorPipeline
 
         private void CreateZoomOverlay()
         {
-            var adorner = new DigitalZoomAdorner(ZoomImage) { Foreground = Brushes.LimeGreen, Thickness = 2.0 };
+            var adorner = ZoomDisplay.CreateDigitalZoomAdorner();
             adorner.SetBinding(DigitalZoomAdorner.ZoomedRegionProperty, nameof(MainViewModel.ZoomedRegion));
-            var adornerLayer = AdornerLayer.GetAdornerLayer(ZoomImage);
-            adornerLayer.Add(adorner);
+            adorner.SetBinding(DigitalZoomAdorner.DisplayWidthProperty, new Binding(nameof(ActualWidth)) { Source = PrimaryDisplay });
+            adorner.SetBinding(DigitalZoomAdorner.DisplayHeightProperty, new Binding(nameof(ActualHeight)) { Source = PrimaryDisplay });
+            ZoomDisplay.AddDigitalZoomAdorner(adorner);
         }
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
@@ -40,18 +45,44 @@ namespace ActorPipeline
             CreateZoomOverlay();
 
             await viewModel.CreatePipeline();
-            viewModel.PrimaryDisplayUpdater.Tell(new WpfImageControlUpdaterActor.SetImageControlMessage(Image, ImageBorder));
-            viewModel.ZoomDisplayUpdater.Tell(new WpfImageControlUpdaterActor.SetImageControlMessage(ZoomImage, ZoomImageBorder));                                 
+            viewModel.PrimaryDisplayUpdater.Tell(new WpfImageDisplayUpdaterActor.SetImageDisplayMessage(PrimaryDisplay));
+            viewModel.ZoomDisplayUpdater.Tell(new WpfImageDisplayUpdaterActor.SetImageDisplayMessage(ZoomDisplay));                                 
         }                
 
-        private void Image_OnMouseWheel(object sender, MouseWheelEventArgs e)
+        private async void Image_OnMouseWheel(object sender, MouseWheelEventArgs e)
         {
-            var position = e.GetPosition(Image);
+            var position = e.GetPosition(PrimaryDisplay);
             var relativePosition = new FractionalImagePosition(
-                position.X / Image.ActualWidth, 
-                position.Y / Image.ActualHeight
+                position.X / PrimaryDisplay.ActualWidth, 
+                position.Y / PrimaryDisplay.ActualHeight
                 );
-            viewModel.ZoomInto(relativePosition, e.Delta / 120);
+            await viewModel.ZoomInto(relativePosition, e.Delta / 120);
+        }
+
+        private void Image_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            previousPosition = e.GetPosition(PrimaryDisplay);
+            isDragging = true;
+            PrimaryDisplay.ImageCaptureMouse();
+        }
+
+        private void Image_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            isDragging = false;
+            PrimaryDisplay.ImageRelaseMouseCapture();
+        }
+
+        private async void Image_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (!isDragging)
+            {
+                return;
+            }
+            var currentPosition = e.GetPosition(PrimaryDisplay);
+            double dx = (currentPosition.X - previousPosition.X)/ PrimaryDisplay.ActualWidth;
+            double dy = (currentPosition.Y - previousPosition.Y) / PrimaryDisplay.ActualHeight;
+            previousPosition = currentPosition;
+            await viewModel.PanBy(-dx, -dy);            
         }
     }
 }

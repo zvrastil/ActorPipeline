@@ -122,8 +122,17 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Actors\LutFilterActor.cs" />
+    <Compile Include="Actors\WpfImageDisplayUpdaterActor.cs" />
+    <Compile Include="Controls\ImageDisplay.xaml.cs">
+      <DependentUpon>ImageDisplay.xaml</DependentUpon>
+    </Compile>
     <Compile Include="ViewModels\DelegateCommand.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
+    <Page Include="Controls\ImageDisplay.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -147,7 +156,6 @@
     <Compile Include="Actors\ProcessingFilterActorBase.cs" />
     <Compile Include="Actors\PipelineCoordinatorActor.cs" />
     <Compile Include="Actors\FilterActorBase.cs" />
-    <Compile Include="Actors\WpfImageControlUpdaterActor.cs" />
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>

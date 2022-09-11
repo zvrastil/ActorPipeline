@@ -102,6 +102,6 @@ namespace ActorPipeline.Images2
             int newLeft = Math.Max(0, Center.X - newWidth/2);
             int newTop = Math.Max(0, Center.Y - newHeight/2);
             return new ImageRegion(newLeft, newTop, newWidth, newHeight);
-        }
+        }        
     }
 }

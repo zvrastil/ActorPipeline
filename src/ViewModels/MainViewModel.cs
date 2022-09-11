@@ -31,6 +31,7 @@ namespace ActorPipeline.ViewModels
         private DelegateCommand startStopCommand;
 
         private bool isRunning;
+        private FractionalImageRegion zoomedRegion = FractionalImageRegion.Invalid;
 
         public MainViewModel()
         {
@@ -96,7 +97,7 @@ namespace ActorPipeline.ViewModels
             imageDownscaler.Tell(new PipelineFilterMessages.ConnectToMessage(imageSource));
 
             bitmapUpdaterPrimary = ActorGlobals.ActorSystem.ActorOf(
-                Props.Create(() => new WpfImageControlUpdaterActor()).WithDispatcher("akka.actor.synchronized-dispatcher"),
+                Props.Create(() => new WpfImageDisplayUpdaterActor()).WithDispatcher("akka.actor.synchronized-dispatcher"),
                 "bitmapUpdaterPrimary"
                 );
 
@@ -108,7 +109,7 @@ namespace ActorPipeline.ViewModels
                 );
 
             bitmapUpdaterZoom = ActorGlobals.ActorSystem.ActorOf(
-                Props.Create(() => new WpfImageControlUpdaterActor()).WithDispatcher("akka.actor.synchronized-dispatcher"),
+                Props.Create(() => new WpfImageDisplayUpdaterActor()).WithDispatcher("akka.actor.synchronized-dispatcher"),
                 "bitmapUpdaterZoom"
                 );
 
@@ -125,8 +126,7 @@ namespace ActorPipeline.ViewModels
             imageDisplayZoom.Tell(new DisplayMessages.SetDigitalZoomMessage(1.0, 0.5, 0.5));
 
             ZoomedRegion = await imageDisplayPrimary.Ask<FractionalImageRegion>(new DisplayMessages.GetZoomedRegionMessage());
-            OnPropertyChanged(nameof(ZoomedRegion));
-        }
+        }        
 
         public ImageFormatCrate SelectedImageFormat
         {
@@ -184,16 +184,36 @@ namespace ActorPipeline.ViewModels
 
         public IActorRef ZoomDisplayUpdater => bitmapUpdaterZoom;
 
-        public FractionalImageRegion ZoomedRegion { get; private set; }
+        public FractionalImageRegion ZoomedRegion
+        {
+            get => zoomedRegion;
+            set
+            {
+                if (zoomedRegion != value)
+                {
+                    zoomedRegion = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
-        public async void ZoomInto(FractionalImagePosition zoomCenter, double delta)
+        public async Task ZoomInto(FractionalImagePosition zoomCenter, double delta)
         {
             if (imageDisplayPrimary != null)
             {
                 imageDisplayPrimary.Tell(new DisplayMessages.ZoomIntoMessage(zoomCenter, delta));
 
                 ZoomedRegion = await imageDisplayPrimary.Ask<FractionalImageRegion>(new DisplayMessages.GetZoomedRegionMessage());
-                OnPropertyChanged(nameof(ZoomedRegion));
+            }
+        }
+
+        public async Task PanBy(double dx, double dy)
+        {
+            if (imageDisplayPrimary != null)
+            {
+                imageDisplayPrimary.Tell(new DisplayMessages.PanByMessage(dx, dy));
+                
+                ZoomedRegion = await imageDisplayPrimary.Ask<FractionalImageRegion>(new DisplayMessages.GetZoomedRegionMessage());
             }
         }
 
