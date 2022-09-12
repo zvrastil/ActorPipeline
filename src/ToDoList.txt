@@ -1,0 +1,23 @@
+﻿- Pipeline Concept based on Actor Model
+	done
+- Image Source actor supporting 8-bit grayscale, 16-bit grayscale and Color images
+	done
+- WPF image display
+	done
+- Image Downscaler & Zoomer
+	done (using OpenCL), up to 16k x 16k resolution
+- Support for multiple displays of different size/zoom connected to single downscaler
+    done
+- Digital Zoom support
+    done
+- LUT filter
+	done
+- Full Image Processing & Saving
+- Scan line indicator
+- Support for 64k x 64k images
+- Mixing
+- Reduced Area
+- Mailbox with overwritable messages 
+- Queueing problem solution
+- Pan rounded to whole pixels
+- different DPI support

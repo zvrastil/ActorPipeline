@@ -123,10 +123,19 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Actors\LutFilterActor.cs" />
+    <Compile Include="Actors\Lut\ILutTable.cs" />
+    <Compile Include="Actors\Lut\LutTableBase.cs" />
+    <Compile Include="Actors\Lut\LutTableBgra32Bit.cs" />
+    <Compile Include="Actors\Lut\LutTableFactory.cs" />
+    <Compile Include="Actors\Lut\LutTableGrayscale16Bit.cs" />
+    <Compile Include="Actors\Lut\LutTableGrayscale8Bit.cs" />
     <Compile Include="Actors\WpfImageDisplayUpdaterActor.cs" />
     <Compile Include="Controls\ImageDisplay.xaml.cs">
       <DependentUpon>ImageDisplay.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Crates\DigitalContrastAndBrightnessCrate.cs" />
+    <Compile Include="Images2\ImageExtensions.cs" />
+    <Compile Include="Messages\LutMessages.cs" />
     <Compile Include="ViewModels\DelegateCommand.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />
     <Page Include="Controls\ImageDisplay.xaml">
@@ -219,6 +228,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="ToDoList.txt" />
   </ItemGroup>
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

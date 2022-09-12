@@ -31,7 +31,9 @@
             <ComboBox Grid.Row="1" Grid.Column="1" x:Name="DwellTime" ItemsSource="{Binding DwellTimes}" SelectedValue="{Binding SelectedDwellTime}" DisplayMemberPath="Description" />
             <Label Grid.Row="2" Content="Format"/>
             <ComboBox Grid.Row="2" Grid.Column="1" x:Name="Format" ItemsSource="{Binding ImageFormats}" SelectedValue="{Binding SelectedImageFormat}" DisplayMemberPath="Description"/>
-            <controls:ImageDisplay x:Name="ZoomDisplay" Grid.Row="3" Grid.ColumnSpan="2" Width="240" Height="160" Margin="0,10,0,0"/>
+            <Label Grid.Row="3" Content="Digital C&amp;B"/>
+            <ComboBox Grid.Row="3" Grid.Column="1" x:Name="DcbPreset" ItemsSource="{Binding DcbPresets}" SelectedValue="{Binding SelectedDcbPreset}" DisplayMemberPath="Name"/>
+            <controls:ImageDisplay x:Name="ZoomDisplay" Grid.Row="4" Grid.ColumnSpan="2" Width="240" Height="160" Margin="0,10,0,0"/>
             <Button x:Name="StartStop" Margin="0,10" Grid.Row="9" Grid.ColumnSpan="2" Content="{Binding StartStopText}" Command="{Binding StartStopCommand}"/>
         </Grid>
         <controls:ImageDisplay x:Name="PrimaryDisplay"

@@ -6,6 +6,7 @@ using ActorPipeline.Messages.Data;
 using Akka.Actor;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -21,44 +22,42 @@ namespace ActorPipeline.ViewModels
         private IActorRef imageSource;
         private IActorRef imageDownscaler;
         private IActorRef imageDisplayPrimary;
+        private IActorRef lutFilterPrimary;
         private IActorRef bitmapUpdaterPrimary;
         private IActorRef imageDisplayZoom;
+        private IActorRef lutFilterZoom;
         private IActorRef bitmapUpdaterZoom;
 
         private ImageFormatCrate selectedImageFormat;
         private ImageSize selectedImageResolution;
         private DwellTimeCrate selectedDwellTime;
-        private DelegateCommand startStopCommand;
+        private DigitalContrastAndBrightnessCrate selectedDcbPreset;
+
+        private readonly DelegateCommand startStopCommand;
 
         private bool isRunning;
         private FractionalImageRegion zoomedRegion = FractionalImageRegion.Invalid;
 
         public MainViewModel()
         {
-            ImageFormats = new List<ImageFormatCrate>
-            {
-                new ImageFormatCrate(ImageFormat.Grayscale8, "GrayScale 8 bit"),
-                new ImageFormatCrate(ImageFormat.Grayscale16, "GrayScale 16 bit"),
-                new ImageFormatCrate(ImageFormat.Bgra32, "RGB 24 bit"),
-            };
+            ImageFormats = CreateAvailableImageFormats();
             selectedImageFormat = ImageFormats[0];
 
-            ImageResolutions = new List<ImageSize>
-            {
-                new ImageSize(768, 512),
-                new ImageSize(1536, 1024),
-                new ImageSize(3072, 2048),
-                new ImageSize(6144, 4096),
-                new ImageSize(512, 442),
-                new ImageSize(1024, 884),
-                new ImageSize(2048, 1768),
-                new ImageSize(4096, 3536),
-                new ImageSize(8192, 8192),
-                new ImageSize(16384, 16384),
-            };
+            ImageResolutions = CreateAvailableResolutions();
             selectedImageResolution = ImageResolutions[0];
 
-            DwellTimes = new List<DwellTimeCrate>
+            DwellTimes = CreateAvailableDwellTimes();
+            selectedDwellTime = DwellTimes[1];
+
+            DcbPresets = new ObservableCollection<DigitalContrastAndBrightnessCrate>(CreateAvailableDcbPresets());
+            selectedDcbPreset = DcbPresets.First();
+
+            startStopCommand = new DelegateCommand(StartStopPipeline);
+        }
+
+        private static List<DwellTimeCrate> CreateAvailableDwellTimes()
+        {
+            return new List<DwellTimeCrate>
             {
                 new DwellTimeCrate(50, "50 ns"),
                 new DwellTimeCrate(100, "100 ns"),
@@ -73,10 +72,48 @@ namespace ActorPipeline.ViewModels
                 new DwellTimeCrate(1000000, "1 ms"),
                 new DwellTimeCrate(2000000, "2 ms"),
             };
-            selectedDwellTime = DwellTimes[1];
+        }
 
-            startStopCommand = new DelegateCommand(StartStopPipeline);
-        }        
+        private static IReadOnlyList<ImageSize> CreateAvailableResolutions()
+        {
+            return new List<ImageSize>
+            {
+                new ImageSize(768, 512),
+                new ImageSize(1536, 1024),
+                new ImageSize(3072, 2048),
+                new ImageSize(6144, 4096),
+                new ImageSize(512, 442),
+                new ImageSize(1024, 884),
+                new ImageSize(2048, 1768),
+                new ImageSize(4096, 3536),
+                new ImageSize(8192, 8192),
+                new ImageSize(16384, 16384),
+            };
+        }
+
+        private static IReadOnlyList<ImageFormatCrate> CreateAvailableImageFormats()
+        {
+            return new List<ImageFormatCrate>
+            {
+                new ImageFormatCrate(ImageFormat.Grayscale8, "GrayScale 8 bit"),
+                new ImageFormatCrate(ImageFormat.Grayscale16, "GrayScale 16 bit"),
+                new ImageFormatCrate(ImageFormat.Bgra32, "RGB 24 bit"),
+            };
+        }
+
+        private static IReadOnlyList<DigitalContrastAndBrightnessCrate> CreateAvailableDcbPresets()
+        {
+            return new List<DigitalContrastAndBrightnessCrate>
+            {
+                new DigitalContrastAndBrightnessCrate("Default", 1.0, 0.0, 1.0),
+                new DigitalContrastAndBrightnessCrate("Noisy", 2.0, -0.15, 1.0),
+                new DigitalContrastAndBrightnessCrate("Backlight", 1.0, -0.1, 0.5),
+                new DigitalContrastAndBrightnessCrate("Darkfield", 1.0, 0.1, 2.0),
+                new DigitalContrastAndBrightnessCrate("Hard", 1.3, 0.0, 1.0),
+                new DigitalContrastAndBrightnessCrate("Soft", 0.7, 0.0, 1.0),
+                new DigitalContrastAndBrightnessCrate("Inverse", -1.0, 0.0, 1.0),
+            };
+        }
 
         public async Task CreatePipeline()
         {
@@ -108,6 +145,13 @@ namespace ActorPipeline.ViewModels
                     )
                 );
 
+            lutFilterPrimary = await imageDisplayPrimary.Ask<IActorRef>(
+                new DisplayMessages.AddFilterMessage(
+                    Props.Create(() => new LutFilterActor()),
+                    "lutFilterPrimary"
+                )
+            );
+
             bitmapUpdaterZoom = ActorGlobals.ActorSystem.ActorOf(
                 Props.Create(() => new WpfImageDisplayUpdaterActor()).WithDispatcher("akka.actor.synchronized-dispatcher"),
                 "bitmapUpdaterZoom"
@@ -119,6 +163,14 @@ namespace ActorPipeline.ViewModels
                     FilterPropertiesBuilder.WithName("imageDisplayZoom").Build()
                     )
                 );
+
+            lutFilterZoom = await imageDisplayZoom.Ask<IActorRef>(
+                new DisplayMessages.AddFilterMessage(
+                    Props.Create(() => new LutFilterActor()),
+                    "lutFilterZoom"
+                )
+            );
+
 
             UpdateImageFormat();
             UpdateDwellTime();
@@ -176,6 +228,22 @@ namespace ActorPipeline.ViewModels
 
         public IReadOnlyList<DwellTimeCrate> DwellTimes { get; }
 
+        public DigitalContrastAndBrightnessCrate SelectedDcbPreset
+        {
+            get => selectedDcbPreset;
+            set
+            {
+                if (!selectedDcbPreset.Equals(value))
+                {
+                    selectedDcbPreset = value;
+                    OnPropertyChanged();
+                    UpdateLut();
+                }
+            }
+        }
+
+        public ObservableCollection<DigitalContrastAndBrightnessCrate> DcbPresets { get; }
+
         public ICommand StartStopCommand => startStopCommand;
 
         public string StartStopText => isRunning ? "Stop" : "Start";
@@ -225,6 +293,17 @@ namespace ActorPipeline.ViewModels
         private void UpdateDwellTime()
         {
             pipeline?.Tell(new PipelineControlMessages.SetDwellTimeMessage(SelectedDwellTime.DwellTimeNanoseconds));
+        }
+
+        private void UpdateLut()
+        {
+            var message = new LutMessages.SetDigitalCBMessage(
+                selectedDcbPreset.Contrast, 
+                selectedDcbPreset.Brightness,
+                selectedDcbPreset.Gamma);
+            
+            lutFilterPrimary?.Tell(message);
+            lutFilterZoom?.Tell(message);
         }
 
         private void StartStopPipeline()

@@ -102,14 +102,14 @@ namespace ActorPipeline.Actors
         {
             foreach (var range in GetUpdateRegions())
             {
-                var message = CreatePartialUpdate(range.Item1, range.Item2);
+                var message = CreatePartialUpdate(range.From, range.Count);
                 TellToSubscribers(message);
             }
             lastPosition = imageGenerator.Position;
             lastFrame = imageGenerator.Frame;
         }
 
-        private IEnumerable<(int, int)> GetUpdateRegions()
+        private IEnumerable<(int From, int Count)> GetUpdateRegions()
         {
             if (lastFrame == imageGenerator.Frame)
             {
@@ -131,21 +131,7 @@ namespace ActorPipeline.Actors
         private PipelineFilterMessages.PartialUpdateMessage CreatePartialUpdate(int fromY, int height)
         {
             var rect = new ImageRegion(0, fromY, sourceImage.Width, height);
-            return new PipelineFilterMessages.PartialUpdateMessage(lastFormatChangeId, rect, ExtractData(sourceImage, rect));
-        }
-
-        private static byte[] ExtractData(IImage image, ImageRegion rect)
-        {
-            byte[] result = new byte[rect.Width * rect.Height * image.BytesPerPixel];
-            for (int i = 0; i < rect.Height; i++)
-            {
-                using (var readAccess = image.LockLineForReading(rect.Top + i))
-                {
-                    Marshal.Copy(readAccess.Ptr+rect.Left*image.BytesPerPixel, result, i*rect.Width*image.BytesPerPixel, rect.Width*image.BytesPerPixel);
-                }
-            }
-
-            return result;
+            return new PipelineFilterMessages.PartialUpdateMessage(lastFormatChangeId, rect, sourceImage.ExtractData(rect));
         }
 
         private static double GetNoiseLevel(long dwellTime)

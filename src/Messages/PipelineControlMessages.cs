@@ -4,7 +4,7 @@ using Akka.Actor;
 
 namespace ActorPipeline.Messages
 {
-    public static class PipelineControlMessages
+    public class PipelineControlMessages
     {
         public sealed class StartMessage
         {

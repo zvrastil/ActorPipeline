@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace ActorPipeline.Messages
 {
-    public static class PipelineFilterMessages
+    public class PipelineFilterMessages
     {
         public sealed class ConnectToMessage
         {
