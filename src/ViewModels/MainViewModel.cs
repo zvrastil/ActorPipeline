@@ -4,6 +4,7 @@ using ActorPipeline.Images2;
 using ActorPipeline.Messages;
 using ActorPipeline.Messages.Data;
 using Akka.Actor;
+using Microsoft.Win32;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -34,6 +35,7 @@ namespace ActorPipeline.ViewModels
         private DigitalContrastAndBrightnessCrate selectedDcbPreset;
 
         private readonly DelegateCommand startStopCommand;
+        private readonly DelegateCommand<bool> saveImageCommand;
 
         private bool isRunning;
         private FractionalImageRegion zoomedRegion = FractionalImageRegion.Invalid;
@@ -53,7 +55,8 @@ namespace ActorPipeline.ViewModels
             selectedDcbPreset = DcbPresets.First();
 
             startStopCommand = new DelegateCommand(StartStopPipeline);
-        }
+            saveImageCommand = new DelegateCommand<bool>(SaveImage);
+        }        
 
         private static List<DwellTimeCrate> CreateAvailableDwellTimes()
         {
@@ -248,6 +251,8 @@ namespace ActorPipeline.ViewModels
 
         public string StartStopText => isRunning ? "Stop" : "Start";
 
+        public ICommand SaveImageCommand => saveImageCommand;
+
         public IActorRef PrimaryDisplayUpdater => bitmapUpdaterPrimary;
 
         public IActorRef ZoomDisplayUpdater => bitmapUpdaterZoom;
@@ -319,6 +324,28 @@ namespace ActorPipeline.ViewModels
                 isRunning = false;
             }
             OnPropertyChanged(nameof(StartStopText));
+        }
+
+        private async void SaveImage(bool zoomedAreaOnly)
+        {
+            var saveDlg = new SaveFileDialog { Title = "Save Image", Filter = "PNG File|*.png" };
+            if (!saveDlg.ShowDialog().GetValueOrDefault())
+            {
+                return;
+            }
+            if (isRunning)
+            {
+                StartStopPipeline();
+            }
+            Mouse.OverrideCursor = Cursors.Wait;
+            try
+            {
+                bool success = await imageDisplayPrimary.Ask<bool>(new DisplayMessages.SaveImageMessage(saveDlg.FileName, zoomedAreaOnly));
+            }
+            finally
+            {
+                Mouse.OverrideCursor = null;
+            }
         }
 
         private void OnPropertyChanged([CallerMemberName]string propertyName = null)

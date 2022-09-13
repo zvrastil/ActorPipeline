@@ -28,6 +28,7 @@ namespace ActorPipeline.Actors
             Receive<DisplayMessages.ZoomIntoMessage>(HandleZoomInto);
             Receive<DisplayMessages.PanByMessage>(HandlePanBy);
             Receive<DisplayMessages.GetZoomedRegionMessage>(HandleGetZoomedRegion);
+            Receive<DisplayMessages.SaveImageMessage>(HandleSaveImage);
             renderingActor.Tell(new DisplayMessages.SetImageDisplayPipelineMessage(Self));
             imageDownscalerActor.Tell(new PipelineFilterMessages.SubscribeMessage(Self));
         }        
@@ -128,6 +129,18 @@ namespace ActorPipeline.Actors
                 digitalZoom ?? new DisplayMessages.SetDigitalZoomMessage(1, 0.5, 0.5);
             var region = FractionalImageRegion.WholeImage().ZoomIn(currentZoom.ZoomFactor).PanSafe(currentZoom.PanX, currentZoom.PanY);
             Sender.Tell(region);
+        }
+
+        private void HandleSaveImage(DisplayMessages.SaveImageMessage message)
+        {
+            LogMessage(message);
+            // TODO: gather and save image
+            // create actor for image gathering and saving, give him Sender and fileName
+            // connect it to the tail of the pipeline 
+            // imageDownscalerActor.Tell(new PipelineFilterMessages.SendUnresizedImageData(message.ZoomedAreaOnly));
+            // 
+            // upon receiving confirmation from imageSaver, tell original sender to finish Ask
+            Sender.Tell(true); // just for now
         }
 
         private void TellDownscalerIfReady()

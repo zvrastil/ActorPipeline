@@ -107,5 +107,19 @@ namespace ActorPipeline.Messages
         {
             public override string ToString() => "Display_GetZoomedRegionMessage";
         }
+
+        public sealed class SaveImageMessage
+        {
+            public SaveImageMessage(string fileName, bool zoomedAreaOnly)
+            {
+                FileName = fileName;
+                ZoomedAreaOnly = zoomedAreaOnly;
+            }
+
+            public string FileName { get; }
+            public bool ZoomedAreaOnly { get; }
+
+            public override string ToString() => $"Display_SaveImage({FileName}, zoomedAreaOnly: {ZoomedAreaOnly})";
+        }
     }
 }
