@@ -4,9 +4,7 @@ using ActorPipeline.Messages;
 using Akka.Actor;
 using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using ActorPipeline.Images2.Factories;
-using Serilog.Core;
 
 namespace ActorPipeline.Actors
 {

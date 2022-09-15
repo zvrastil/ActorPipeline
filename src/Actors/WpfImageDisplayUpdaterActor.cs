@@ -9,8 +9,10 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Xml.Linq;
 
 namespace ActorPipeline.Actors
 {
@@ -84,8 +86,12 @@ namespace ActorPipeline.Actors
             if (imageDisplayPipeline != null && imageDisplayControl != null &&
                 imageDisplayControl.ActualWidth > 0 && imageDisplayControl.ActualHeight > 0)
             {
+                var source = PresentationSource.FromVisual(imageDisplayControl);
+                Matrix transformToDevice = source.CompositionTarget.TransformToDevice;
+                var pixelSize = transformToDevice.Transform(new Vector(imageDisplayControl.ActualWidth,
+                    imageDisplayControl.ActualHeight));
                 imageDisplayPipeline?.Tell(
-                    new DisplayMessages.SetDisplaySizeMessage(new ImageSize((int)imageDisplayControl.ActualWidth, (int)imageDisplayControl.ActualHeight)));
+                    new DisplayMessages.SetDisplaySizeMessage(new ImageSize((int)pixelSize.X, (int)pixelSize.Y)));
             }
         }
 

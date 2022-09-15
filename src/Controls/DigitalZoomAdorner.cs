@@ -77,7 +77,6 @@ namespace ActorPipeline.Controls
                 var pen = new Pen(Foreground, Thickness);
                 pen.Freeze();
 
-
                 var pixelsRect = ZoomedRegion
                     .ToPixels(new ImageSize((int)adornedImage.RenderSize.Width, (int)adornedImage.RenderSize.Height));
                 var rect = ExpandToAspectRatio(pixelsRect, DisplayWidth/DisplayHeight);
@@ -96,7 +95,7 @@ namespace ActorPipeline.Controls
             }
             else if (aspectRatio < currentAspectRatio)
             {
-                newHeight = (1.0 / aspectRatio) * region.Height;
+                newHeight = (currentAspectRatio / aspectRatio) * region.Height;
             }
             double newLeft = region.Center.X - newWidth / 2;
             double newTop = region.Center.Y - newHeight / 2;

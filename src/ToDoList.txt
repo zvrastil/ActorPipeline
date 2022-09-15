@@ -17,6 +17,8 @@
 - Support for 64k x 64k images
 - Mixing
 - Reduced Area
+- Connect to Sky Simulator
+- Connect to Object Model
 - Mailbox with overwritable messages 
 - Queueing problem solution
 - Pan rounded to whole pixels
