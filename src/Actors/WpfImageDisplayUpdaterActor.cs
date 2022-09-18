@@ -3,20 +3,15 @@ using ActorPipeline.Images2;
 using ActorPipeline.Messages;
 using Akka.Actor;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.InteropServices;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Xml.Linq;
 
 namespace ActorPipeline.Actors
 {
-    internal class WpfImageDisplayUpdaterActor : FilterActorBase
+    public class WpfImageDisplayUpdaterActor : FilterActorBase
     {
         private ImageDisplay imageDisplayControl;
         private IActorRef imageDisplayPipeline;
@@ -43,8 +38,8 @@ namespace ActorPipeline.Actors
             BaseMessages();
             Receive<SetImageDisplayMessage>(HandleImageControlChange);
             Receive<DisplayMessages.SetImageDisplayPipelineMessage>(HandleImageDisplayPipelineChange);
-            Receive<PipelineFilterMessages.FormatChangedMessage>(HandleFormatChange);
-            Receive<PipelineFilterMessages.PartialUpdateMessage>(HandleImageUpdate);
+            ReceiveAsync<PipelineFilterMessages.FormatChangedMessage>(HandleFormatChange);
+            ReceiveAsync<PipelineFilterMessages.PartialUpdateMessage>(HandleImageUpdate);
         }
 
         private void HandleImageDisplayPipelineChange(DisplayMessages.SetImageDisplayPipelineMessage message)
@@ -95,24 +90,28 @@ namespace ActorPipeline.Actors
             }
         }
 
-        private void HandleFormatChange(PipelineFilterMessages.FormatChangedMessage message)
+        private async Task HandleFormatChange(PipelineFilterMessages.FormatChangedMessage message)
         {
             LogMessage(message);
             var (format, bytesPerPixel) = GetPixelFormat(message.Format);
             bitmap = new WriteableBitmap(message.Size.Width, message.Size.Height, 96.0, 96.0, format, null);
             this.bytesPerPixel = bytesPerPixel;
-            ClearBitmap(bitmap);
             currentFormatId = message.Id;
+            await ClearBitmap(bitmap);            
             // do not set the source immediately - postpone it to the first update to prevent
             // display from going black
         }
 
-        private static void ClearBitmap(WriteableBitmap bitmap)
+        private static async Task ClearBitmap(WriteableBitmap bitmap)
         {
             bitmap.Lock();
             try
             {
-                FillMemory(bitmap.BackBuffer, (uint)(bitmap.PixelHeight * bitmap.BackBufferStride), 0);
+                IntPtr backBuffer = bitmap.BackBuffer;
+                uint size = (uint)(bitmap.PixelHeight*bitmap.BackBufferStride);
+                
+                await Task.Run(() => FillMemory(backBuffer, size, 0));
+
                 bitmap.AddDirtyRect(new Int32Rect(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
             }
             finally
@@ -122,7 +121,7 @@ namespace ActorPipeline.Actors
 
         }
 
-        private void HandleImageUpdate(PipelineFilterMessages.PartialUpdateMessage message)
+        private async Task HandleImageUpdate(PipelineFilterMessages.PartialUpdateMessage message)
         {
             if (message.FormatChangeId != currentFormatId)
             {
@@ -136,11 +135,16 @@ namespace ActorPipeline.Actors
             bitmap.Lock();
             try
             {
-                for (int row = 0; row < message.Changed.Height; row++)
+                IntPtr backBuffer = bitmap.BackBuffer;
+                int stride = bitmap.BackBufferStride;
+                await Task.Run(() =>
                 {
-                    IntPtr linePtr = bitmap.BackBuffer + (message.Changed.Top + row) * bitmap.BackBufferStride;
-                    Marshal.Copy(message.Data, row * message.Changed.Width * bytesPerPixel, linePtr + message.Changed.Left * bytesPerPixel, message.Changed.Width * bytesPerPixel);
-                }
+                    for (int row = 0; row < message.Changed.Height; row++)
+                    {
+                        IntPtr linePtr = backBuffer + (message.Changed.Top + row) * stride;
+                        Marshal.Copy(message.Data, row * message.Changed.Width * bytesPerPixel, linePtr + message.Changed.Left * bytesPerPixel, message.Changed.Width * bytesPerPixel);
+                    }                    
+                });
                 bitmap.AddDirtyRect(ToInt32Rect(message.Changed));
             }
             finally

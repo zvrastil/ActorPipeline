@@ -13,6 +13,8 @@ namespace ActorPipeline.Actors
 
         private static readonly TimeSpan updateInterval = TimeSpan.FromMilliseconds(100);
 
+        private const long MaxImageUpdateSize = 4 * 1024 * 1024;
+
         private IImage sourceImage;
         private IImageGenerator imageGenerator;
         private long dwellTimeNanoseconds = 50;
@@ -42,6 +44,7 @@ namespace ActorPipeline.Actors
             BaseMessages();
             Receive<PipelineControlMessages.SetImageFormatMessage>(HandleFormatChange);
             Receive<PipelineControlMessages.SetDwellTimeMessage>(HandleDwellTimeChange);
+            Receive<PipelineFilterMessages.SendImageDataMessage>(HandleSendImageData);
         }        
 
         private void IdleMessages()
@@ -158,6 +161,26 @@ namespace ActorPipeline.Actors
             imageGenerator?.Reset(GetNoiseLevel(dwellTimeNanoseconds));
             lastTick = DateTime.Now;    
             lastPosition = new ImagePosition(0, 0);
+        }
+
+        private void HandleSendImageData(PipelineFilterMessages.SendImageDataMessage message)
+        {
+            LogMessage(message);
+            int lineSize = message.Region.Width * sourceImage.BytesPerPixel;
+            int linesPerMessage = Math.Max(1, Math.Min((int)(MaxImageUpdateSize / lineSize), message.Region.Height));
+            int numberOfMessages = message.Region.Height / linesPerMessage;
+            if (message.Region.Height % linesPerMessage > 0)
+            {
+                numberOfMessages += 1;
+            }            
+            int row = message.Region.Top;
+            for (int i = 0; i < numberOfMessages; i++)
+            {
+                int linesInMessage = Math.Min(linesPerMessage, message.Region.Bottom - row);
+                byte[] data = sourceImage.ExtractData(new ImageRegion(message.Region.Left, row, message.Region.Width, linesPerMessage));                
+                TellToSubscribers(new PipelineFilterMessages.ImageDataMessage(message.RequestId, sourceImage.Format, message.Region.Size, row-message.Region.Top, linesInMessage, data));
+                row += linesInMessage;
+            }            
         }
 
         protected override void OnSubscribed(IActorRef actor)

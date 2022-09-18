@@ -328,19 +328,21 @@ namespace ActorPipeline.ViewModels
 
         private async void SaveImage(bool zoomedAreaOnly)
         {
-            var saveDlg = new SaveFileDialog { Title = "Save Image", Filter = "PNG File|*.png" };
-            if (!saveDlg.ShowDialog().GetValueOrDefault())
-            {
-                return;
-            }
             if (isRunning)
             {
                 StartStopPipeline();
             }
+
+            var saveDlg = new SaveFileDialog { Title = "Save Image", Filter = "TIF File|*.tif" };
+            if (!saveDlg.ShowDialog().GetValueOrDefault())
+            {
+                return;
+            }
+            
             Mouse.OverrideCursor = Cursors.Wait;
             try
             {
-                bool success = await imageDisplayPrimary.Ask<bool>(new DisplayMessages.SaveImageMessage(saveDlg.FileName, zoomedAreaOnly));
+                bool success = await imageDisplayPrimary.Ask<bool>(new DisplayMessages.SaveImageMessage(MessageIdSource.NextId(), saveDlg.FileName, zoomedAreaOnly));
             }
             finally
             {

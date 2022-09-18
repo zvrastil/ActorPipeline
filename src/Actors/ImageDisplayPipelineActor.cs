@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using ActorPipeline.Images2;
 using ActorPipeline.Messages;
+using ActorPipeline.Messages.Data;
 using Akka.Actor;
 
 namespace ActorPipeline.Actors
@@ -14,6 +16,7 @@ namespace ActorPipeline.Actors
         private readonly IActorRef renderingActor;
         private DisplayMessages.SetDisplaySizeMessage displaySize;
         private DisplayMessages.SetDigitalZoomMessage digitalZoom;
+        private readonly Dictionary<long, IActorRef> pendingSaveImageClients = new Dictionary<long, IActorRef>();
 
         public ImageDisplayPipelineActor(IActorRef imageDownscalerActor, IActorRef renderingActor) : base()
         {
@@ -22,6 +25,7 @@ namespace ActorPipeline.Actors
             Receive<DisplayMessages.AddFilterMessage>(HandleAddFilter);
             Receive<PipelineFilterMessages.FormatChangedMessage>(ForwardToHead);
             Receive<PipelineFilterMessages.PartialUpdateMessage>(ForwardToHead);
+            Receive<PipelineFilterMessages.ImageDataMessage>(ForwardToHead);
 
             Receive<DisplayMessages.SetDisplaySizeMessage>(HandleDisplaySize);
             Receive<DisplayMessages.SetDigitalZoomMessage>(HandleDigitalZoom);
@@ -29,9 +33,10 @@ namespace ActorPipeline.Actors
             Receive<DisplayMessages.PanByMessage>(HandlePanBy);
             Receive<DisplayMessages.GetZoomedRegionMessage>(HandleGetZoomedRegion);
             Receive<DisplayMessages.SaveImageMessage>(HandleSaveImage);
+            Receive<DisplayMessages.ImageSavedMessage>(HandleImageSaved);            
             renderingActor.Tell(new DisplayMessages.SetImageDisplayPipelineMessage(Self));
             imageDownscalerActor.Tell(new PipelineFilterMessages.SubscribeMessage(Self));
-        }        
+        }       
 
         private void HandleAddFilter(DisplayMessages.AddFilterMessage message)
         {
@@ -39,11 +44,11 @@ namespace ActorPipeline.Actors
 
             var newFilter = Context.ActorOf(message.Props, message.FilterName);
             if (filters.Any())
-            {                
-                filters.Last().Tell(new PipelineFilterMessages.UnsubscribeMessage(renderingActor));
+            {
+                renderingActor.Tell(new PipelineFilterMessages.DisconnectFromMessage(filters.Last()));
                 newFilter.Tell(new PipelineFilterMessages.ConnectToMessage(filters.Last()));
             }
-            newFilter.Tell(new PipelineFilterMessages.SubscribeMessage(renderingActor));
+            renderingActor.Tell(new PipelineFilterMessages.ConnectToMessage(newFilter));
             filters.Add(newFilter);           
             Sender.Tell(newFilter);
         }        
@@ -134,13 +139,22 @@ namespace ActorPipeline.Actors
         private void HandleSaveImage(DisplayMessages.SaveImageMessage message)
         {
             LogMessage(message);
-            // TODO: gather and save image
-            // create actor for image gathering and saving, give him Sender and fileName
-            // connect it to the tail of the pipeline 
-            // imageDownscalerActor.Tell(new PipelineFilterMessages.SendUnresizedImageData(message.ZoomedAreaOnly));
-            // 
-            // upon receiving confirmation from imageSaver, tell original sender to finish Ask
-            Sender.Tell(true); // just for now
+
+            Context.ActorOf(Props.Create(() => new FullImageCollectorActor(Self, imageDownscalerActor, filters.LastOrDefault() ?? imageDownscalerActor,
+                message.RequestId, message.FileName, message.ZoomedAreaOnly, 
+                new ZoomedImageArea(digitalZoom.ZoomFactor, digitalZoom.PanX, digitalZoom.PanY, (double)displaySize.DisplaySize.Width/displaySize.DisplaySize.Height))),
+                $"ImageCollectorFor({Path.GetFileName(message.FileName)})");
+
+            pendingSaveImageClients.Add(message.RequestId, Sender);
+        }
+
+        private void HandleImageSaved(DisplayMessages.ImageSavedMessage message)
+        {
+            LogMessage(message);
+
+            pendingSaveImageClients[message.RequestId].Tell(true);
+            pendingSaveImageClients.Remove(message.RequestId);
+            Sender.Tell(PoisonPill.Instance);
         }
 
         private void TellDownscalerIfReady()

@@ -1,7 +1,9 @@
 ﻿
 using ActorPipeline.Actors.Downscaling;
+using ActorPipeline.Images2;
 using ActorPipeline.Messages;
 using Akka.Actor;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -22,7 +24,38 @@ namespace ActorPipeline.Actors
             Receive<PipelineFilterMessages.PartialUpdateMessage>(HandlePartialUpdate);
             Receive<DownscalingMessages.SetDownscalingSizesMessage>(HandleFinalSizes);
             Receive<DownscalingMessages.OutputUpdatedMessage>(HandleOutputUpdated);
+            Receive<PipelineFilterMessages.SendZoomedImageMessage>(HandleSendZoomedImage);
+            Receive<PipelineFilterMessages.ImageDataMessage>(HandleImageData);
             downscaler = Context.ActorOf(Props.Create(() => new OpenClDownscalerActor(Self)), "downscaler");
+        }
+
+        private void HandleImageData(PipelineFilterMessages.ImageDataMessage message)
+        {
+            // full image data, just transfer to subscribers
+            LogMessage(message);
+            TellToSubscribers(message);
+        }
+
+        private void HandleSendZoomedImage(PipelineFilterMessages.SendZoomedImageMessage message)
+        {
+            LogMessage(message);
+            ImageRegion targetRegion;
+            if (message.ZoomedImage)
+            {
+                targetRegion = FractionalImageRegion
+                    .WholeImage()
+                    .ZoomIn(message.Area.ZoomFactor)
+                    .PanSafe(message.Area.PanX, message.Area.PanY)
+                    .ToFractionalPixels(inputFormat.Size)
+                    .ExpandSafelyTo(message.Area.AspectRatio, inputFormat.Size)
+                    .RoundToPixels(inputFormat.Size);
+            }
+            else
+            {
+                targetRegion = new ImageRegion(0, 0, inputFormat.Size.Width, inputFormat.Size.Height);
+            }
+
+            TellToSources(new PipelineFilterMessages.SendImageDataMessage(MessageIdSource.NextId(), targetRegion));
         }
 
         private void HandleOutputUpdated(DownscalingMessages.OutputUpdatedMessage message)

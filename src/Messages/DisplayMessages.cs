@@ -110,16 +110,30 @@ namespace ActorPipeline.Messages
 
         public sealed class SaveImageMessage
         {
-            public SaveImageMessage(string fileName, bool zoomedAreaOnly)
+            public SaveImageMessage(long requestId, string fileName, bool zoomedAreaOnly)
             {
+                RequestId = requestId;
                 FileName = fileName;
                 ZoomedAreaOnly = zoomedAreaOnly;
             }
 
+            public long RequestId { get; }
             public string FileName { get; }
             public bool ZoomedAreaOnly { get; }
 
-            public override string ToString() => $"Display_SaveImage({FileName}, zoomedAreaOnly: {ZoomedAreaOnly})";
+            public override string ToString() => $"Display_SaveImage({RequestId}, {FileName}, zoomedAreaOnly: {ZoomedAreaOnly})";
+        }
+
+        public sealed class ImageSavedMessage
+        {
+            public ImageSavedMessage(long requestId)
+            {
+                RequestId = requestId;
+            }
+
+            public long RequestId { get; }
+
+            public override string ToString() => $"Display_ImageSaved({RequestId})";
         }
     }
 }

@@ -46,6 +46,9 @@
     <Reference Include="Akka.Logger.Serilog, Version=1.4.26.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\Akka.Logger.Serilog.1.4.26\lib\netstandard2.0\Akka.Logger.Serilog.dll</HintPath>
     </Reference>
+    <Reference Include="BitMiracle.LibTiff.NET, Version=2.4.649.0, Culture=neutral, PublicKeyToken=53879b3e20e7a7d6, processorArchitecture=MSIL">
+      <HintPath>packages\BitMiracle.LibTiff.NET.2.4.649\lib\net40\BitMiracle.LibTiff.NET.dll</HintPath>
+    </Reference>
     <Reference Include="Cloo, Version=1.0.1.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>packages\Cloo.clSharp.1.0.1\lib\netstandard2.0\Cloo.dll</HintPath>
     </Reference>
@@ -122,6 +125,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Actors\FullImageCollectorActor.cs" />
     <Compile Include="Actors\LutFilterActor.cs" />
     <Compile Include="Actors\Lut\ILutTable.cs" />
     <Compile Include="Actors\Lut\LutTableBase.cs" />
@@ -135,6 +139,7 @@
     </Compile>
     <Compile Include="Crates\DigitalContrastAndBrightnessCrate.cs" />
     <Compile Include="Images2\ImageExtensions.cs" />
+    <Compile Include="Messages\Data\ZoomedImageArea.cs" />
     <Compile Include="Messages\LutMessages.cs" />
     <Compile Include="ViewModels\DelegateCommand.cs" />
     <Compile Include="ViewModels\MainViewModel.cs" />

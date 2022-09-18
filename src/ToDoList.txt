@@ -13,6 +13,7 @@
 - LUT filter
 	done
 - Full Image Processing & Saving
+    done
 - Scan line indicator
 - Support for 64k x 64k images
 - Mixing
@@ -23,3 +24,4 @@
 - Queueing problem solution
 - Pan rounded to whole pixels
 - different DPI support
+   done

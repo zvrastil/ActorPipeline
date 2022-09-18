@@ -25,7 +25,7 @@ namespace ActorPipeline.Actors.ImageGenerators
                 InMemoryImageFactory.Instance.Create(targetImage.Size, targetImage.Format);
             GenerateImage(sourceImage);
             var random = new Random();
-            noise = Enumerable.Range(0, 16361).Select(_ => (sbyte)(random.Next(255) - 128)).ToArray();
+            noise = Enumerable.Range(0, 1024*1024*50).Select(_ => (sbyte)(random.Next(255) - 128)).ToArray();
             Reset(noiseLevel);
         }
 

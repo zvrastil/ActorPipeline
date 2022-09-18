@@ -3,6 +3,7 @@ using ActorPipeline.Messages;
 using ActorPipeline.Actors.Lut;
 using ActorPipeline.Images2;
 using ActorPipeline.Images2.Factories;
+using System;
 
 namespace ActorPipeline.Actors
 {
@@ -22,6 +23,20 @@ namespace ActorPipeline.Actors
             imageFactory = new InMemoryImageFactory();
             BaseMessages();
             Receive<LutMessages.SetDigitalCBMessage>(HandleSetDigitalContrastAndBrightness);
+            Receive<PipelineFilterMessages.ImageDataMessage>(HandleImageData);
+        }
+
+        private void HandleImageData(PipelineFilterMessages.ImageDataMessage message)
+        {
+            LogMessage(message);
+            if (lutTable != null)
+            {
+                TellToSubscribers(message.WithNewData(lutTable.ProcessData(message.Data)));
+            }
+            else
+            {
+                TellToSubscribers(message);
+            }
         }
 
         protected override void PostStop()

@@ -52,7 +52,7 @@ namespace ActorPipeline.Images2
             double width = Width / factor;
             double height = Height / factor;
             return new FractionalImageRegion(centerX - width / 2.0, centerY - height / 2.0, width, height);
-        }
+        }        
 
         public FractionalImageRegion PanSafe(double panX, double panY)
         {
@@ -112,7 +112,40 @@ namespace ActorPipeline.Images2
             double newTop = Math.Max(0, Math.Min(Center.Y - newHeight / 2, fullImageSize.Height-newHeight));
             var result = new FractionalImageRegion(newLeft, newTop, newWidth, newHeight);
             return result;
-        }        
+        }
+
+        public FractionalImageRegion ExpandSafelyTo(double aspectRatio, ImageSize fullSize)
+        {
+            double currentAspectRatio = (double)Width / Height;
+            double idealWidth = Width;
+            double idealHeight = Height;
+            if (aspectRatio > currentAspectRatio)
+            {
+                idealWidth = (aspectRatio / currentAspectRatio) * Width;
+            }
+            else if (aspectRatio < currentAspectRatio)
+            {
+                idealHeight = (currentAspectRatio / aspectRatio) * Height;
+            }
+
+
+            double newWidth = Math.Min(idealWidth, fullSize.Width);
+            double newHeight = Math.Min(idealHeight, fullSize.Height);
+            double newLeft = Math.Max(0, Math.Min(Center.X - newWidth / 2, fullSize.Width - newWidth));
+            double newTop = Math.Max(0, Math.Min(Center.Y - newHeight / 2, fullSize.Height - newHeight));
+            var result = new FractionalImageRegion(newLeft, newTop, newWidth, newHeight);
+            return result;
+        }
+
+        public ImageRegion RoundToPixels(ImageSize maxSize)
+        {
+            return new ImageRegion(
+                Math.Max(0, (int)(Left + 0.5)),
+                Math.Max(0, (int)(Top + 0.5)),
+                Math.Min(maxSize.Width, (int)(Width + 0.5)),
+                Math.Min(maxSize.Height, (int)(Height + 0.5))
+                );
+        }
 
         public override string ToString() => $"[{Left}, {Top}, {Right}, {Bottom}] {Width}x{Height}";
 

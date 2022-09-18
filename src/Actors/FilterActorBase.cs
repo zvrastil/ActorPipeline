@@ -15,6 +15,7 @@ namespace ActorPipeline.Actors
 
     public abstract class FilterActorBase : LoggingActor
     {
+        private readonly HashSet<IActorRef> sources = new HashSet<IActorRef>();
         private readonly HashSet<IActorRef> subscribers = new HashSet<IActorRef>();
         private readonly FilterFlags filterFlags;
 
@@ -33,6 +34,7 @@ namespace ActorPipeline.Actors
             if (filterFlags.HasFlag(FilterFlags.TargetFilter))
             {
                 Receive<PipelineFilterMessages.ConnectToMessage>(HandleConnectTo);
+                Receive<PipelineFilterMessages.DisconnectFromMessage>(HandleDisconnectFrom);
             }
         }        
 
@@ -40,11 +42,23 @@ namespace ActorPipeline.Actors
         {
             if (!filterFlags.HasFlag(FilterFlags.SourceFilter))
             {
-                throw new InvalidOperationException("Only source filter can have subscribers.");
+                throw new InvalidOperationException("Target filters can't have subscribers.");
             }
             foreach (var subscriber in subscribers)
             {
                 subscriber.Tell(message);
+            }
+        }
+
+        protected void TellToSources<T>(T message)
+        {
+            if (!filterFlags.HasFlag(FilterFlags.TargetFilter))
+            {
+                throw new InvalidOperationException("Source filters can't have subscribers.");
+            }
+            foreach (var source in sources)
+            {
+                source.Tell(message);
             }
         }
 
@@ -79,6 +93,17 @@ namespace ActorPipeline.Actors
             foreach (var sourceFilter in message.SourceFilters)
             {
                 sourceFilter.Tell(new PipelineFilterMessages.SubscribeMessage(Self));
+                sources.Add(sourceFilter);
+            }
+        }
+
+        private void HandleDisconnectFrom(PipelineFilterMessages.DisconnectFromMessage message)
+        {
+            LogMessage(message);
+            foreach (var sourceFilter in message.SourceFilters)
+            {
+                sourceFilter.Tell(new PipelineFilterMessages.UnsubscribeMessage(Self));
+                sources.Remove(sourceFilter);
             }
         }
 
