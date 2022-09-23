@@ -18,7 +18,7 @@ namespace ActorPipeline
 
             Log.Logger = logger;
 
-            ActorGlobals.ActorSystem = ActorSystem.Create("ActorPipeline","akka { loglevel=DEBUG,  loggers=[\"Akka.Logger.Serilog.SerilogLogger, Akka.Logger.Serilog\"]}");
+            ActorGlobals.ActorSystem = ActorSystem.Create("ActorPipeline");
         }
 
         private void Application_Exit(object sender, ExitEventArgs e)

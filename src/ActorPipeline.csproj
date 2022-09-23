@@ -139,6 +139,9 @@
     </Compile>
     <Compile Include="Crates\DigitalContrastAndBrightnessCrate.cs" />
     <Compile Include="Images2\ImageExtensions.cs" />
+    <Compile Include="Mailbox\IReplaceableMessage.cs" />
+    <Compile Include="Mailbox\ReplaceableMessageQueue.cs" />
+    <Compile Include="Mailbox\ReplaceableMessageMailbox.cs" />
     <Compile Include="Messages\Data\ZoomedImageArea.cs" />
     <Compile Include="Messages\LutMessages.cs" />
     <Compile Include="ViewModels\DelegateCommand.cs" />

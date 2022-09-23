@@ -1,4 +1,5 @@
 ﻿using ActorPipeline.Images2;
+using ActorPipeline.Mailbox;
 using Akka.Actor;
 
 namespace ActorPipeline.Messages
@@ -44,7 +45,7 @@ namespace ActorPipeline.Messages
             public override string ToString() => $"Display_SetDisplaySize({DisplaySize})";
         }
 
-        public sealed class SetDigitalZoomMessage
+        public sealed class SetDigitalZoomMessage : IReplaceableMessage
         {
             public double ZoomFactor { get; }
             public double PanX { get; }
@@ -58,9 +59,10 @@ namespace ActorPipeline.Messages
             }
 
             public override string ToString() => $"Display_SetDigitalZoom({ZoomFactor}, {PanX}, {PanY})";
+            public bool CanReplace(IReplaceableMessage other) => other is SetDigitalZoomMessage;
         }
 
-        public sealed class ZoomIntoMessage
+        public sealed class ZoomIntoMessage : IReplaceableMessage
         {
             public FractionalImagePosition ZoomCenter { get; }
             public double Delta { get; }
@@ -72,9 +74,10 @@ namespace ActorPipeline.Messages
             }
 
             public override string ToString() => $"Display_ZoomInto({ZoomCenter}, {Delta})";
+            public bool CanReplace(IReplaceableMessage other) => other is ZoomIntoMessage;
         }
 
-        public sealed class PanByMessage
+        public sealed class PanByMessage : IReplaceableMessage
         {
             public PanByMessage(double deltaX, double deltaY)
             {
@@ -86,9 +89,10 @@ namespace ActorPipeline.Messages
             public double DeltaY { get; }
 
             public override string ToString() => $"Display_PanBy({DeltaX}, {DeltaY})";
+            public bool CanReplace(IReplaceableMessage other) => other is PanByMessage;
         }
 
-        public sealed class SetDisplaySettingsMessage
+        public sealed class SetDisplaySettingsMessage : IReplaceableMessage
         {
             public FractionalImageRegion RelativeRegion { get; }
             public ImageSize DisplaySize { get; }
@@ -100,7 +104,7 @@ namespace ActorPipeline.Messages
             }
 
             public override string ToString() => $"Display_SetDisplaySettings({RelativeRegion}, {DisplaySize})";
-
+            public bool CanReplace(IReplaceableMessage other) => other is SetDisplaySettingsMessage;
         }
 
         public sealed class GetZoomedRegionMessage

@@ -1,11 +1,12 @@
 ﻿using ActorPipeline.Images2;
+using ActorPipeline.Mailbox;
 using Akka.Actor;
 
 namespace ActorPipeline.Actors.Downscaling
 {
     internal static class DownscalingMessages
     {
-        public sealed class SetDownscalingSettingsMessage
+        public sealed class SetDownscalingSettingsMessage : IReplaceableMessage
         {
             public IActorRef ForActor { get; }
             public ImageSize InputSize { get; }
@@ -25,6 +26,11 @@ namespace ActorPipeline.Actors.Downscaling
 
             public override string ToString() =>
                 $"Downscaling_SetDownscalingSettings(for: {ForActor.Path.Name}, inputSize: {InputSize}, displaySize: {DisplaySize}, format: {Format}, zoomedArea: {ZoomedArea})";
+
+            public bool CanReplace(IReplaceableMessage other)
+            {
+                return other is SetDownscalingSettingsMessage msg && msg.ForActor.Equals(ForActor);
+            }
         }
 
         public sealed class SetDownscalingSizesMessage

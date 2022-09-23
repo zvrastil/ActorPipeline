@@ -123,13 +123,15 @@ namespace ActorPipeline.ViewModels
             pipeline = ActorGlobals.ActorSystem.ActorOf(Props.Create(() => new PipelineCoordinatorActor()), "pipeline");
             imageSource = await pipeline.Ask<IActorRef>(
                 new PipelineControlMessages.CreateFilterMessage(
-                    Props.Create(() => new ImageSourceActor()),
+                    Props.Create(() => new ImageSourceActor())
+                        .WithMailbox("replaceable-message-mailbox"),
                     FilterPropertiesBuilder.WithName("imageSource").AsSourceFilter().Build()
                     )
                 );
             imageDownscaler = await pipeline.Ask<IActorRef>(
                 new PipelineControlMessages.CreateFilterMessage(
-                    Props.Create(() => new ImageDownscalerActor()),
+                    Props.Create(() => new ImageDownscalerActor())
+                        .WithMailbox("replaceable-message-mailbox"),
                     FilterPropertiesBuilder.WithName("imageDownscaler").Build()
                     )
                 );
@@ -137,39 +139,47 @@ namespace ActorPipeline.ViewModels
             imageDownscaler.Tell(new PipelineFilterMessages.ConnectToMessage(imageSource));
 
             bitmapUpdaterPrimary = ActorGlobals.ActorSystem.ActorOf(
-                Props.Create(() => new WpfImageDisplayUpdaterActor()).WithDispatcher("akka.actor.synchronized-dispatcher"),
+                Props.Create(() => new WpfImageDisplayUpdaterActor())
+                    .WithMailbox("replaceable-message-mailbox")
+                    .WithDispatcher("akka.actor.synchronized-dispatcher"),
                 "bitmapUpdaterPrimary"
                 );
 
             imageDisplayPrimary = await pipeline.Ask<IActorRef>(
                 new PipelineControlMessages.CreateFilterMessage(
-                    Props.Create(() => new ImageDisplayPipelineActor(imageDownscaler, bitmapUpdaterPrimary)),
+                    Props.Create(() => new ImageDisplayPipelineActor(imageDownscaler, bitmapUpdaterPrimary))
+                        .WithMailbox("replaceable-message-mailbox"),
                     FilterPropertiesBuilder.WithName("imageDisplayPrimary").Build()
                     )
                 );
 
             lutFilterPrimary = await imageDisplayPrimary.Ask<IActorRef>(
                 new DisplayMessages.AddFilterMessage(
-                    Props.Create(() => new LutFilterActor()),
+                    Props.Create(() => new LutFilterActor())
+                        .WithMailbox("replaceable-message-mailbox"),
                     "lutFilterPrimary"
                 )
             );
 
             bitmapUpdaterZoom = ActorGlobals.ActorSystem.ActorOf(
-                Props.Create(() => new WpfImageDisplayUpdaterActor()).WithDispatcher("akka.actor.synchronized-dispatcher"),
+                Props.Create(() => new WpfImageDisplayUpdaterActor())
+                    .WithMailbox("replaceable-message-mailbox")
+                    .WithDispatcher("akka.actor.synchronized-dispatcher"),
                 "bitmapUpdaterZoom"
                 );
 
             imageDisplayZoom = await pipeline.Ask<IActorRef>(
                 new PipelineControlMessages.CreateFilterMessage(
-                    Props.Create(() => new ImageDisplayPipelineActor(imageDownscaler, bitmapUpdaterZoom)),
+                    Props.Create(() => new ImageDisplayPipelineActor(imageDownscaler, bitmapUpdaterZoom))
+                        .WithMailbox("replaceable-message-mailbox"),
                     FilterPropertiesBuilder.WithName("imageDisplayZoom").Build()
                     )
                 );
 
             lutFilterZoom = await imageDisplayZoom.Ask<IActorRef>(
                 new DisplayMessages.AddFilterMessage(
-                    Props.Create(() => new LutFilterActor()),
+                    Props.Create(() => new LutFilterActor())
+                        .WithMailbox("replaceable-message-mailbox"),
                     "lutFilterZoom"
                 )
             );
