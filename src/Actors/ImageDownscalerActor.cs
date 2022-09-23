@@ -3,7 +3,6 @@ using ActorPipeline.Actors.Downscaling;
 using ActorPipeline.Images2;
 using ActorPipeline.Messages;
 using Akka.Actor;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -12,8 +11,8 @@ namespace ActorPipeline.Actors
     public sealed class ImageDownscalerActor : FilterActorBase
     {
         private PipelineFilterMessages.FormatChangedMessage inputFormat;
-        private Dictionary<IActorRef, DisplayMessages.SetDisplaySettingsMessage> outputSettings = new Dictionary<IActorRef, DisplayMessages.SetDisplaySettingsMessage>();
-        private Dictionary<IActorRef, DownscalingSizes> outputFormats = new Dictionary<IActorRef, DownscalingSizes>();
+        private readonly Dictionary<IActorRef, DisplayMessages.SetDisplaySettingsMessage> outputSettings = 
+            new Dictionary<IActorRef, DisplayMessages.SetDisplaySettingsMessage>();
         private readonly IActorRef downscaler;
 
         public ImageDownscalerActor() : base(FilterFlags.ProcessingFilter)
@@ -22,7 +21,6 @@ namespace ActorPipeline.Actors
             Receive<PipelineFilterMessages.FormatChangedMessage>(HandleFormatChange);
             Receive<DisplayMessages.SetDisplaySettingsMessage>(HandleDisplaySettings);
             Receive<PipelineFilterMessages.PartialUpdateMessage>(HandlePartialUpdate);
-            Receive<DownscalingMessages.SetDownscalingSizesMessage>(HandleFinalSizes);
             Receive<DownscalingMessages.OutputUpdatedMessage>(HandleOutputUpdated);
             Receive<PipelineFilterMessages.SendZoomedImageMessage>(HandleSendZoomedImage);
             Receive<PipelineFilterMessages.ImageDataMessage>(HandleImageData);
@@ -63,14 +61,6 @@ namespace ActorPipeline.Actors
             LogMessage(message);
             message.ForActor.Tell(new PipelineFilterMessages.PartialUpdateMessage(message.OutputFormatId, message.Changed, message.Data));
         }
-
-        private void HandleFinalSizes(DownscalingMessages.SetDownscalingSizesMessage message)
-        {
-            LogMessage(message);
-            outputFormats[message.ForActor] = message.Sizes;
-            message.ForActor.Tell(CreateOutputFormatMessage(outputFormats[message.ForActor]));
-        }
-
 
         private void HandlePartialUpdate(PipelineFilterMessages.PartialUpdateMessage message)
         {
@@ -125,11 +115,6 @@ namespace ActorPipeline.Actors
                         outputSettings[client].RelativeRegion));
                 }
             }
-        }
-
-        private PipelineFilterMessages.FormatChangedMessage CreateOutputFormatMessage(DownscalingSizes outputFormat)
-        {
-            return new PipelineFilterMessages.FormatChangedMessage(outputFormat.Id, outputFormat.FinalOutputSize, outputFormat.Format);
         }
 
         private bool IsReadyForWork()

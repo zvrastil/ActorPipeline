@@ -45,6 +45,8 @@ namespace ActorPipeline.Actors.Downscaling
         {
             LogMessage(message);
 
+            message.ForActor.Tell(new PipelineFilterMessages.FormatChangedMessage(message.Sizes.Id, message.Sizes.FinalOutputSize, message.Sizes.Format));
+
             bool needFullResize = false;
 
             if (OutputSizeOrFormatChanged(message.Sizes))
