@@ -13,7 +13,7 @@ namespace ActorPipeline.Mailbox
 
         public override IMessageQueue Create(IActorRef owner, ActorSystem system)
         {
-            return new ReplaceableMessageQueue();
+            return new ReplaceableMessageQueue(owner.Path.Name);
         }
     }
 }

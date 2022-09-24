@@ -11,7 +11,7 @@ using System.Windows.Media.Imaging;
 
 namespace ActorPipeline.Actors
 {
-    public class WpfImageDisplayUpdaterActor : FilterActorBase
+    public sealed class WpfImageDisplayUpdaterActor : FilterActorBase
     {
         private ImageDisplay imageDisplayControl;
         private IActorRef imageDisplayPipeline;
@@ -93,13 +93,22 @@ namespace ActorPipeline.Actors
         private async Task HandleFormatChange(PipelineFilterMessages.FormatChangedMessage message)
         {
             LogMessage(message);
-            var (format, bytesPerPixel) = GetPixelFormat(message.Format);
-            bitmap = new WriteableBitmap(message.Size.Width, message.Size.Height, 96.0, 96.0, format, null);
-            this.bytesPerPixel = bytesPerPixel;
             currentFormatId = message.Id;
-            await ClearBitmap(bitmap);            
+            var (format, bpp) = GetPixelFormat(message.Format);
+            if (BitmapSizeOrFormatChanged(message, format))
+            {
+                bitmap = new WriteableBitmap(message.Size.Width, message.Size.Height, 96.0, 96.0, format, null);
+                bytesPerPixel = bpp;
+                await ClearBitmap(bitmap);
+            }
             // do not set the source immediately - postpone it to the first update to prevent
             // display from going black
+        }
+
+        private bool BitmapSizeOrFormatChanged(PipelineFilterMessages.FormatChangedMessage message, PixelFormat format)
+        {
+            return bitmap == null || bitmap.PixelWidth != message.Size.Width || bitmap.PixelHeight != message.Size.Height ||
+                   bitmap.Format != format;
         }
 
         private static async Task ClearBitmap(WriteableBitmap bitmap)
@@ -127,6 +136,7 @@ namespace ActorPipeline.Actors
             {
                 return;
             }
+
             LogMessage(message);
             if (bitmap == null)
             {
@@ -152,10 +162,27 @@ namespace ActorPipeline.Actors
                 bitmap.Unlock();
             }
 
+            SetLastScanPosition(message);
+
             if (imageDisplayControl != null && appliedFormatId != currentFormatId)
             {
                 imageDisplayControl.Source = bitmap;
                 appliedFormatId = currentFormatId;
+            }
+        }
+
+        private void SetLastScanPosition(PipelineFilterMessages.PartialUpdateMessage message)
+        {
+            var source = PresentationSource.FromVisual(imageDisplayControl);
+            if (source != null)
+            {
+                var transformFromDevice = source.CompositionTarget.TransformFromDevice;
+                var bitmapSize = transformFromDevice.Transform(new Vector(bitmap.Width, bitmap.Height));
+                double scale = imageDisplayControl.ActualHeight / bitmapSize.Y;
+                var point = new Point(scale * message.Changed.Left, scale * message.Changed.Bottom);
+
+                imageDisplayControl.SetCurrentValue(ImageDisplay.LastScanPositionProperty,
+                    transformFromDevice.Transform(point));
             }
         }
 

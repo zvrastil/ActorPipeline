@@ -5,6 +5,7 @@ using ActorPipeline.Messages;
 using Akka.Actor;
 using System.Collections.Generic;
 using System.Linq;
+using Akka.Event;
 
 namespace ActorPipeline.Actors
 {
@@ -85,9 +86,9 @@ namespace ActorPipeline.Actors
 
         private void HandleDisplaySettings(DisplayMessages.SetDisplaySettingsMessage message)
         {
-            LogMessage(message);
-            outputSettings[Sender] = message;
-            UpdateDownscalerSettings(Sender);
+            LogMessage(message); 
+            outputSettings[message.ForDisplay] = message;
+            UpdateDownscalerSettings(message.ForDisplay);
         }
 
         protected override void OnSubscribed(IActorRef actor)

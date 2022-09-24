@@ -1,31 +1,37 @@
-﻿using ActorPipeline.Images2;
+﻿using System.Diagnostics;
 using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 
 namespace ActorPipeline.Controls
 {
-    /// <summary>
-    /// Interaction logic for ImageDisplay.xaml
-    /// </summary>
-    public partial class ImageDisplay : UserControl
+
+    public partial class ImageDisplay
     {
         public ImageSource Source
         {
-            get { return (ImageSource)GetValue(SourceProperty); }
-            set { SetValue(SourceProperty, value); }
+            get => (ImageSource)GetValue(SourceProperty);
+            set => SetValue(SourceProperty, value);
         }
 
         public static readonly DependencyProperty SourceProperty =
-            DependencyProperty.Register("Source", typeof(ImageSource), typeof(ImageDisplay), new PropertyMetadata(null, OnSourceChanged));
+            DependencyProperty.Register(nameof(Source), typeof(ImageSource), typeof(ImageDisplay), new PropertyMetadata(null, OnSourceChanged));
 
         private static void OnSourceChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
         {
             ((ImageDisplay)d).Image.Source = (ImageSource)e.NewValue;
         }
+
+        public Point LastScanPosition
+        {
+            get => (Point)GetValue(LastScanPositionProperty);
+            set => SetValue(LastScanPositionProperty, value);
+        }
+
+        public static readonly DependencyProperty LastScanPositionProperty = DependencyProperty.Register(
+            nameof(LastScanPosition), typeof(Point), typeof(ImageDisplay),
+            new FrameworkPropertyMetadata(new Point(-1, -1)));
 
         public static readonly RoutedEvent ImageMouseLeftButtonDownEvent = EventManager.RegisterRoutedEvent(
             name: "ImageMouseLeftButtonDown",
@@ -35,8 +41,8 @@ namespace ActorPipeline.Controls
 
         public event MouseButtonEventHandler ImageMouseLeftButtonDown
         {
-            add { AddHandler(ImageMouseLeftButtonDownEvent, value); }
-            remove { RemoveHandler(ImageMouseLeftButtonDownEvent, value); }
+            add => AddHandler(ImageMouseLeftButtonDownEvent, value);
+            remove => RemoveHandler(ImageMouseLeftButtonDownEvent, value);
         }
 
         public static readonly RoutedEvent ImageMouseLeftButtonUpEvent = EventManager.RegisterRoutedEvent(
@@ -47,8 +53,8 @@ namespace ActorPipeline.Controls
 
         public event MouseButtonEventHandler ImageMouseLeftButtonUp
         {
-            add { AddHandler(ImageMouseLeftButtonUpEvent, value); }
-            remove { RemoveHandler(ImageMouseLeftButtonUpEvent, value); }
+            add => AddHandler(ImageMouseLeftButtonUpEvent, value);
+            remove => RemoveHandler(ImageMouseLeftButtonUpEvent, value);
         }
 
         public static readonly RoutedEvent ImageMouseMoveEvent = EventManager.RegisterRoutedEvent(
@@ -59,8 +65,8 @@ namespace ActorPipeline.Controls
 
         public event MouseEventHandler ImageMouseMove
         {
-            add { AddHandler(ImageMouseMoveEvent, value); }
-            remove { RemoveHandler(ImageMouseMoveEvent, value); }
+            add => AddHandler(ImageMouseMoveEvent, value);
+            remove => RemoveHandler(ImageMouseMoveEvent, value);
         }
 
         public static readonly RoutedEvent ImageMouseWheelEvent = EventManager.RegisterRoutedEvent(
@@ -71,8 +77,8 @@ namespace ActorPipeline.Controls
 
         public event MouseWheelEventHandler ImageMouseWheel
         {
-            add { AddHandler(ImageMouseWheelEvent, value); }
-            remove { RemoveHandler(ImageMouseWheelEvent, value); }
+            add => AddHandler(ImageMouseWheelEvent, value);
+            remove => RemoveHandler(ImageMouseWheelEvent, value);
         }
 
         public ImageDisplay()
@@ -83,10 +89,13 @@ namespace ActorPipeline.Controls
         public DigitalZoomAdorner CreateDigitalZoomAdorner() => 
             new DigitalZoomAdorner(Image) { Foreground = Brushes.LimeGreen, Thickness = 2.0 };
 
-        public void AddDigitalZoomAdorner(DigitalZoomAdorner adorner)
+        public ScanLineAdorner CreateScanLineAdorner() => new ScanLineAdorner(Image)
+            {Foreground = Brushes.DarkOrange, Length = 10, Thickness = 1.0};
+
+        public void AddAdorner(Adorner adorner)
         {
             var adornerLayer = AdornerLayer.GetAdornerLayer(Image);
-            adornerLayer.Add(adorner);
+            adornerLayer?.Add(adorner);
         }
 
         public void ImageCaptureMouse()
@@ -94,7 +103,7 @@ namespace ActorPipeline.Controls
             Image.CaptureMouse();
         }
 
-        public void ImageRelaseMouseCapture()
+        public void ImageReleaseMouseCapture()
         {
             Image.ReleaseMouseCapture();
         }

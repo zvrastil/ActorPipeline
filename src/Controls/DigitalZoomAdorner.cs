@@ -12,55 +12,55 @@ namespace ActorPipeline.Controls
 
         public FractionalImageRegion ZoomedRegion
         {
-            get { return (FractionalImageRegion)GetValue(ZoomedRegionProperty); }
-            set { SetValue(ZoomedRegionProperty, value); }
+            get => (FractionalImageRegion)GetValue(ZoomedRegionProperty);
+            set => SetValue(ZoomedRegionProperty, value);
         }
 
         public static readonly DependencyProperty ZoomedRegionProperty =
-            DependencyProperty.Register("ZoomedRegion", typeof(FractionalImageRegion), typeof(DigitalZoomAdorner), 
+            DependencyProperty.Register(nameof(ZoomedRegion), typeof(FractionalImageRegion), typeof(DigitalZoomAdorner), 
                 new FrameworkPropertyMetadata(FractionalImageRegion.Invalid, FrameworkPropertyMetadataOptions.AffectsRender));
 
 
 
         public double DisplayWidth
         {
-            get { return (double)GetValue(DisplayWidthProperty); }
-            set { SetValue(DisplayWidthProperty, value); }
+            get => (double)GetValue(DisplayWidthProperty);
+            set => SetValue(DisplayWidthProperty, value);
         }
 
         public static readonly DependencyProperty DisplayWidthProperty =
-            DependencyProperty.Register("DisplayWidth", typeof(double), typeof(DigitalZoomAdorner), 
+            DependencyProperty.Register(nameof(DisplayWidth), typeof(double), typeof(DigitalZoomAdorner), 
                 new FrameworkPropertyMetadata(default(double), FrameworkPropertyMetadataOptions.AffectsRender));
 
 
         public double DisplayHeight
         {
-            get { return (double)GetValue(DisplayHeightProperty); }
-            set { SetValue(DisplayHeightProperty, value); }
+            get => (double)GetValue(DisplayHeightProperty);
+            set => SetValue(DisplayHeightProperty, value);
         }
 
         public static readonly DependencyProperty DisplayHeightProperty =
-            DependencyProperty.Register("DisplayHeight", typeof(double), typeof(DigitalZoomAdorner),
+            DependencyProperty.Register(nameof(DisplayHeight), typeof(double), typeof(DigitalZoomAdorner),
                 new FrameworkPropertyMetadata(default(double), FrameworkPropertyMetadataOptions.AffectsRender));
 
         public Brush Foreground
         {
-            get { return (Brush)GetValue(ForegroundProperty); }
-            set { SetValue(ForegroundProperty, value); }
+            get => (Brush)GetValue(ForegroundProperty);
+            set => SetValue(ForegroundProperty, value);
         }
 
         public static readonly DependencyProperty ForegroundProperty =
-            DependencyProperty.Register("Foreground", typeof(Brush), typeof(DigitalZoomAdorner), 
+            DependencyProperty.Register(nameof(Foreground), typeof(Brush), typeof(DigitalZoomAdorner), 
                 new FrameworkPropertyMetadata(Brushes.White, FrameworkPropertyMetadataOptions.AffectsRender));
 
         public double Thickness
         {
-            get { return (double)GetValue(ThicknessProperty); }
-            set { SetValue(ThicknessProperty, value); }
+            get => (double)GetValue(ThicknessProperty);
+            set => SetValue(ThicknessProperty, value);
         }
 
         public static readonly DependencyProperty ThicknessProperty =
-            DependencyProperty.Register("Thickness", typeof(double), typeof(DigitalZoomAdorner), 
+            DependencyProperty.Register(nameof(Thickness), typeof(double), typeof(DigitalZoomAdorner), 
                 new FrameworkPropertyMetadata(1.0, FrameworkPropertyMetadataOptions.AffectsRender));
 
         public DigitalZoomAdorner(Image adornedElement) : base(adornedElement)

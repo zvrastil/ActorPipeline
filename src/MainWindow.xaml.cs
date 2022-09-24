@@ -1,12 +1,9 @@
 ﻿using ActorPipeline.Actors;
 using ActorPipeline.Images2;
-using ActorPipeline.Messages;
 using Akka.Actor;
 using System.Windows;
-using System.Windows.Controls;
 using System.Windows.Input;
 using ActorPipeline.ViewModels;
-using System.Windows.Documents;
 using ActorPipeline.Controls;
 using System.Windows.Media;
 using System.Windows.Data;
@@ -22,6 +19,7 @@ namespace ActorPipeline
 
         private Point previousPosition;
         private bool isDragging;
+        private Matrix transformToDevice;
 
         public MainWindow()
         {
@@ -37,11 +35,26 @@ namespace ActorPipeline
             adorner.SetBinding(DigitalZoomAdorner.ZoomedRegionProperty, nameof(MainViewModel.ZoomedRegion));
             adorner.SetBinding(DigitalZoomAdorner.DisplayWidthProperty, new Binding(nameof(ActualWidth)) { Source = PrimaryDisplay });
             adorner.SetBinding(DigitalZoomAdorner.DisplayHeightProperty, new Binding(nameof(ActualHeight)) { Source = PrimaryDisplay });
-            ZoomDisplay.AddDigitalZoomAdorner(adorner);
+            ZoomDisplay.AddAdorner(adorner);
+        }
+
+        private void CreateScanLineOverlays()
+        {
+            foreach (var display in new[] {PrimaryDisplay, ZoomDisplay})
+            {
+                var adorner = display.CreateScanLineAdorner();
+                adorner.SetBinding(ScanLineAdorner.PositionProperty,
+                    new Binding(nameof(ImageDisplay.LastScanPosition)) {Source = display});
+                display.AddAdorner(adorner);
+            }
         }
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+            var source = PresentationSource.FromVisual(this);
+            transformToDevice = source.CompositionTarget.TransformToDevice;
+
+            CreateScanLineOverlays();
             CreateZoomOverlay();
 
             await viewModel.CreatePipeline();
@@ -69,7 +82,7 @@ namespace ActorPipeline
         private void Image_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
             isDragging = false;
-            PrimaryDisplay.ImageRelaseMouseCapture();
+            PrimaryDisplay.ImageReleaseMouseCapture();
         }
 
         private async void Image_MouseMove(object sender, MouseEventArgs e)

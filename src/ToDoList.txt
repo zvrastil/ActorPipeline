@@ -15,13 +15,16 @@
 - Full Image Processing & Saving
     done
 - Scan line indicator
+    done
 - Support for 64k x 64k images
 - Mixing
 - Reduced Area
 - Connect to Sky Simulator
 - Connect to Object Model
 - Mailbox with overwritable messages 
+   done
 - Queueing problem solution
+   partially done
 - Pan rounded to whole pixels
 - different DPI support
    done

@@ -6,6 +6,7 @@ using ActorPipeline.Images2;
 using ActorPipeline.Messages;
 using ActorPipeline.Messages.Data;
 using Akka.Actor;
+using Akka.Event;
 
 namespace ActorPipeline.Actors
 {
@@ -161,8 +162,10 @@ namespace ActorPipeline.Actors
         {
             if (digitalZoom != null && displaySize != null)
             {
-                var region = FractionalImageRegion.WholeImage().ZoomIn(digitalZoom.ZoomFactor).PanSafe(digitalZoom.PanX, digitalZoom.PanY);
-                imageDownscalerActor.Tell(new DisplayMessages.SetDisplaySettingsMessage(region, displaySize.DisplaySize));
+                var region = FractionalImageRegion.WholeImage().ZoomIn(digitalZoom.ZoomFactor)
+                    .PanSafe(digitalZoom.PanX, digitalZoom.PanY);
+                imageDownscalerActor.Tell(
+                    new DisplayMessages.SetDisplaySettingsMessage(Self, region, displaySize.DisplaySize));
             }
         }
 

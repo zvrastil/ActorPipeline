@@ -94,17 +94,19 @@ namespace ActorPipeline.Messages
 
         public sealed class SetDisplaySettingsMessage : IReplaceableMessage
         {
+            public IActorRef ForDisplay { get; }
             public FractionalImageRegion RelativeRegion { get; }
             public ImageSize DisplaySize { get; }
 
-            public SetDisplaySettingsMessage(FractionalImageRegion relativeRegion, ImageSize displaySize)
+            public SetDisplaySettingsMessage(IActorRef forDisplay, FractionalImageRegion relativeRegion, ImageSize displaySize)
             {
+                ForDisplay = forDisplay;
                 RelativeRegion = relativeRegion;
                 DisplaySize = displaySize;
             }
 
-            public override string ToString() => $"Display_SetDisplaySettings({RelativeRegion}, {DisplaySize})";
-            public bool CanReplace(IReplaceableMessage other) => other is SetDisplaySettingsMessage;
+            public override string ToString() => $"Display_SetDisplaySettings({ForDisplay.Path.Name}, {RelativeRegion}, {DisplaySize})";
+            public bool CanReplace(IReplaceableMessage other) => other is SetDisplaySettingsMessage msg && msg.ForDisplay.Equals(ForDisplay);
         }
 
         public sealed class GetZoomedRegionMessage

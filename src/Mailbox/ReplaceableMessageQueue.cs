@@ -5,14 +5,18 @@ namespace ActorPipeline.Mailbox
 {
     public class ReplaceableMessageQueue : IMessageQueue
     {
+        private readonly string ownerName;
+        //private readonly ILoggingAdapter logger;
         private Envelope[] queue;
         private int front, rear;
         private readonly object queueLock = new object();
 
-        public ReplaceableMessageQueue(int initialCapacity = 32)
+        public ReplaceableMessageQueue(string ownerName, int initialCapacity = 32)
         {
+            this.ownerName = ownerName;
             queue = new Envelope[initialCapacity];
             front = rear = Count = 0;
+            //logger = Logging.GetLogger(ActorGlobals.ActorSystem, this);
         }
 
         public void Enqueue(IActorRef receiver, Envelope envelope)
@@ -44,6 +48,10 @@ namespace ActorPipeline.Mailbox
                 queue[front] = default; // clear to allow possible garbage collection
                 front = (front+1) % queue.Length;
                 Count--;
+                /*if (Count > 0 && Count % 10 == 0)
+                {
+                    logger.Log(LogLevel.InfoLevel, $"Queue of {ownerName} reached {Count}");
+                }*/
                 return true;
             }
         }
@@ -95,6 +103,10 @@ namespace ActorPipeline.Mailbox
             queue[rear] = envelope;
             rear = (rear + 1) % queue.Length;
             Count++;
+            /*if (Count % 10 == 0)
+            {
+                logger.Log(LogLevel.WarningLevel, $"Queue of {ownerName} reached {Count}");
+            }*/
         }
 
         private void DoubleIfNecessary()
