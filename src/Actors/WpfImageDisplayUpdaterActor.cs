@@ -13,6 +13,8 @@ namespace ActorPipeline.Actors
 {
     public sealed class WpfImageDisplayUpdaterActor : FilterActorBase
     {
+        private static readonly TimeSpan BitmapLockRetryDelay = TimeSpan.FromMilliseconds(16);
+
         private ImageDisplay imageDisplayControl;
         private IActorRef imageDisplayPipeline;
         private WriteableBitmap bitmap;
@@ -38,7 +40,7 @@ namespace ActorPipeline.Actors
             BaseMessages();
             Receive<SetImageDisplayMessage>(HandleImageControlChange);
             Receive<DisplayMessages.SetImageDisplayPipelineMessage>(HandleImageDisplayPipelineChange);
-            ReceiveAsync<PipelineFilterMessages.FormatChangedMessage>(HandleFormatChange);
+            Receive<PipelineFilterMessages.FormatChangedMessage>(HandleFormatChange);
             ReceiveAsync<PipelineFilterMessages.PartialUpdateMessage>(HandleImageUpdate);
         }
 
@@ -90,7 +92,7 @@ namespace ActorPipeline.Actors
             }
         }
 
-        private async Task HandleFormatChange(PipelineFilterMessages.FormatChangedMessage message)
+        private void HandleFormatChange(PipelineFilterMessages.FormatChangedMessage message)
         {
             LogMessage(message);
             currentFormatId = message.Id;
@@ -99,7 +101,7 @@ namespace ActorPipeline.Actors
             {
                 bitmap = new WriteableBitmap(message.Size.Width, message.Size.Height, 96.0, 96.0, format, null);
                 bytesPerPixel = bpp;
-                await ClearBitmap(bitmap);
+                ClearBitmap(bitmap);
             }
             // do not set the source immediately - postpone it to the first update to prevent
             // display from going black
@@ -111,15 +113,14 @@ namespace ActorPipeline.Actors
                    bitmap.Format != format;
         }
 
-        private static async Task ClearBitmap(WriteableBitmap bitmap)
+        private static void ClearBitmap(WriteableBitmap bitmap)
         {
             bitmap.Lock();
             try
             {
                 IntPtr backBuffer = bitmap.BackBuffer;
-                uint size = (uint)(bitmap.PixelHeight*bitmap.BackBufferStride);
-                
-                await Task.Run(() => FillMemory(backBuffer, size, 0));
+                uint size = (uint)(bitmap.PixelHeight * bitmap.BackBufferStride);
+                FillMemory(backBuffer, size, 0);
 
                 bitmap.AddDirtyRect(new Int32Rect(0, 0, bitmap.PixelWidth, bitmap.PixelHeight));
             }
@@ -142,19 +143,24 @@ namespace ActorPipeline.Actors
             {
                 return;
             }
-            bitmap.Lock();
+            // Let WPF finish the previous copy while keeping this partial update in order.
+            while (!bitmap.TryLock(new Duration(TimeSpan.Zero)))
+            {
+                await Task.Delay(BitmapLockRetryDelay);
+            }
+
             try
             {
                 IntPtr backBuffer = bitmap.BackBuffer;
                 int stride = bitmap.BackBufferStride;
-                await Task.Run(() =>
+                int rowBytes = message.Changed.Width * bytesPerPixel;
+                int leftOffset = message.Changed.Left * bytesPerPixel;
+                // Release the write lock before yielding to the dispatcher.
+                for (int row = 0; row < message.Changed.Height; row++)
                 {
-                    for (int row = 0; row < message.Changed.Height; row++)
-                    {
-                        IntPtr linePtr = backBuffer + (message.Changed.Top + row) * stride;
-                        Marshal.Copy(message.Data, row * message.Changed.Width * bytesPerPixel, linePtr + message.Changed.Left * bytesPerPixel, message.Changed.Width * bytesPerPixel);
-                    }                    
-                });
+                    IntPtr destination = backBuffer + (message.Changed.Top + row) * stride + leftOffset;
+                    Marshal.Copy(message.Data, row * rowBytes, destination, rowBytes);
+                }
                 bitmap.AddDirtyRect(ToInt32Rect(message.Changed));
             }
             finally
