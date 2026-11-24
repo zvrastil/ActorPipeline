@@ -208,10 +208,10 @@ namespace ActorPipeline.Actors.Downscaling
             switch (format)
             {
                 case ImageFormat.Grayscale8:
-                    return new ComputeImageFormat(ComputeImageChannelOrder.Luminance,
+                    return new ComputeImageFormat(ComputeImageChannelOrder.R,
                         ComputeImageChannelType.UNormInt8);
                 case ImageFormat.Grayscale16:
-                    return new ComputeImageFormat(ComputeImageChannelOrder.Luminance,
+                    return new ComputeImageFormat(ComputeImageChannelOrder.R,
                         ComputeImageChannelType.UNormInt16);
                 case ImageFormat.Bgra32:
                     return new ComputeImageFormat(ComputeImageChannelOrder.Bgra,
