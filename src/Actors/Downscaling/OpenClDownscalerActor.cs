@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using ActorPipeline.Images2;
 using ActorPipeline.Messages;
 using Akka.Actor;
+using Akka.Event;
 
 namespace ActorPipeline.Actors.Downscaling
 {
