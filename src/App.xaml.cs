@@ -1,5 +1,6 @@
 ﻿using System.Windows;
 using Akka.Actor;
+using Akka.Configuration;
 using Serilog;
 
 namespace ActorPipeline
@@ -18,7 +19,16 @@ namespace ActorPipeline
 
             Log.Logger = logger;
 
-            ActorGlobals.ActorSystem = ActorSystem.Create("ActorPipeline");
+            var config = ConfigurationFactory.ParseString("""
+                akka {
+                    loglevel = DEBUG
+                    loggers = ["Akka.Logger.Serilog.SerilogLogger, Akka.Logger.Serilog"]
+                }
+                replaceable-message-mailbox {
+                    mailbox-type = "ActorPipeline.Mailbox.ReplaceableMessageMailbox, ActorPipeline"
+                }
+                """);
+            ActorGlobals.ActorSystem = ActorSystem.Create("ActorPipeline", config);
         }
 
         private void Application_Exit(object sender, ExitEventArgs e)
