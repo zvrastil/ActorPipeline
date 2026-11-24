@@ -177,7 +177,7 @@ namespace ActorPipeline.Actors
             for (int i = 0; i < numberOfMessages; i++)
             {
                 int linesInMessage = Math.Min(linesPerMessage, message.Region.Bottom - row);
-                byte[] data = sourceImage.ExtractData(new ImageRegion(message.Region.Left, row, message.Region.Width, linesPerMessage));                
+                byte[] data = sourceImage.ExtractData(new ImageRegion(message.Region.Left, row, message.Region.Width, linesInMessage));
                 TellToSubscribers(new PipelineFilterMessages.ImageDataMessage(message.RequestId, sourceImage.Format, message.Region.Size, row-message.Region.Top, linesInMessage, data));
                 row += linesInMessage;
             }            
